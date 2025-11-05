@@ -35,40 +35,64 @@ export class UIManager {
      * 设置按钮事件
      */
     setupButtons() {
-        // 主菜单按钮
-        document.getElementById('playButton').addEventListener('click', () => {
-            if (this.onPlayButton) this.onPlayButton();
-        });
+        // 主菜单按钮（检查是否存在，因为联机模式下按钮结构不同）
+        const playButton = document.getElementById('playButton');
+        if (playButton) {
+            playButton.addEventListener('click', () => {
+                if (this.onPlayButton) this.onPlayButton();
+            });
+        }
 
-        document.getElementById('instructionsButton').addEventListener('click', () => {
-            this.showInstructions();
-        });
+        const instructionsButton = document.getElementById('instructionsButton');
+        if (instructionsButton) {
+            instructionsButton.addEventListener('click', () => {
+                this.showInstructions();
+            });
+        }
 
-        document.getElementById('backButton').addEventListener('click', () => {
-            this.showMainMenu();
-        });
+        const backButton = document.getElementById('backButton');
+        if (backButton) {
+            backButton.addEventListener('click', () => {
+                this.showMainMenu();
+            });
+        }
 
-        document.getElementById('quitButton').addEventListener('click', () => {
-            window.close();
-        });
+        const quitButton = document.getElementById('quitButton');
+        if (quitButton) {
+            quitButton.addEventListener('click', () => {
+                window.close();
+            });
+        }
 
         // 暂停菜单按钮
-        document.getElementById('resumeButton').addEventListener('click', () => {
-            if (this.onResumeButton) this.onResumeButton();
-        });
+        const resumeButton = document.getElementById('resumeButton');
+        if (resumeButton) {
+            resumeButton.addEventListener('click', () => {
+                if (this.onResumeButton) this.onResumeButton();
+            });
+        }
 
-        document.getElementById('mainMenuButton').addEventListener('click', () => {
-            if (this.onMainMenuButton) this.onMainMenuButton();
-        });
+        const mainMenuButton = document.getElementById('mainMenuButton');
+        if (mainMenuButton) {
+            mainMenuButton.addEventListener('click', () => {
+                if (this.onMainMenuButton) this.onMainMenuButton();
+            });
+        }
 
         // 游戏结束按钮
-        document.getElementById('playAgainButton').addEventListener('click', () => {
-            if (this.onPlayButton) this.onPlayButton();
-        });
+        const playAgainButton = document.getElementById('playAgainButton');
+        if (playAgainButton) {
+            playAgainButton.addEventListener('click', () => {
+                if (this.onPlayButton) this.onPlayButton();
+            });
+        }
 
-        document.getElementById('menuButton').addEventListener('click', () => {
-            if (this.onMainMenuButton) this.onMainMenuButton();
-        });
+        const menuButton = document.getElementById('menuButton');
+        if (menuButton) {
+            menuButton.addEventListener('click', () => {
+                if (this.onMainMenuButton) this.onMainMenuButton();
+            });
+        }
     }
 
     /**
