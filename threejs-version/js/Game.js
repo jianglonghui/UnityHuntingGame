@@ -782,10 +782,8 @@ export class Game {
                     );
                 }
 
-                // 本地立即显示击中效果（服务器会发送确认）
-                if (closestEnemy) {
-                    closestEnemy.onHit();
-                }
+                // 注意：不在本地立即显示击中效果，等待服务器的权威判定
+                // 这样可以避免客户端和服务器的生命值不同步
             } else {
                 // 单人模式：检测AI敌人
                 const hitEnemy = this.spawner.checkShootHit(ray);
