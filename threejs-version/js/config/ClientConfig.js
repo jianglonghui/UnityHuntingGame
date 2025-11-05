@@ -23,7 +23,34 @@ export const ClientConfig = {
      * 也适用于本地开发时自动检测端口
      */
     autoDetect() {
-        // 获取当前页面的地址和端口
+        // 1. 优先使用URL参数中的配置（方便部署时指定）
+        const urlParams = new URLSearchParams(window.location.search);
+        const serverUrl = urlParams.get('serverUrl');
+
+        if (serverUrl) {
+            try {
+                const url = new URL(serverUrl);
+                this.SERVER_HOST = url.hostname;
+                this.SERVER_PORT = parseInt(url.port || (url.protocol === 'https:' ? '443' : '80'), 10);
+                console.log(`[ClientConfig] Using URL parameter server: ${this.SERVER_URL}`);
+                return this.SERVER_URL;
+            } catch (e) {
+                console.warn('[ClientConfig] Invalid serverUrl parameter:', serverUrl);
+            }
+        }
+
+        // 2. 尝试从localStorage读取配置（用户手动设置）
+        const savedHost = localStorage.getItem('socketio_server_host');
+        const savedPort = localStorage.getItem('socketio_server_port');
+
+        if (savedHost && savedPort) {
+            this.SERVER_HOST = savedHost;
+            this.SERVER_PORT = parseInt(savedPort, 10);
+            console.log(`[ClientConfig] Using saved server config: ${this.SERVER_URL}`);
+            return this.SERVER_URL;
+        }
+
+        // 3. 自动检测当前页面的地址和端口
         const currentHost = window.location.hostname;
         const currentPort = window.location.port;
 
@@ -40,5 +67,25 @@ export const ClientConfig = {
 
         console.log(`[ClientConfig] Auto-detected server: ${this.SERVER_URL}`);
         return this.SERVER_URL;
+    },
+
+    /**
+     * 保存服务器配置到localStorage
+     */
+    saveServerConfig(host, port) {
+        this.SERVER_HOST = host;
+        this.SERVER_PORT = parseInt(port, 10);
+        localStorage.setItem('socketio_server_host', host);
+        localStorage.setItem('socketio_server_port', port.toString());
+        console.log(`[ClientConfig] Saved server config: ${this.SERVER_URL}`);
+    },
+
+    /**
+     * 清除保存的服务器配置
+     */
+    clearServerConfig() {
+        localStorage.removeItem('socketio_server_host');
+        localStorage.removeItem('socketio_server_port');
+        console.log('[ClientConfig] Cleared saved server config');
     }
 };

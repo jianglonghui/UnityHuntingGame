@@ -36,13 +36,14 @@ export class NetworkManager {
             // 加载Socket.io客户端
             if (typeof io === 'undefined') {
                 const script = document.createElement('script');
-                script.src = '/socket.io/socket.io.js';
+                // 从CDN加载socket.io客户端库，避免跨域问题
+                script.src = 'https://cdn.socket.io/4.6.1/socket.io.min.js';
                 script.onload = () => {
                     this.initializeSocket();
                     resolve();
                 };
                 script.onerror = () => {
-                    reject(new Error('Failed to load Socket.io'));
+                    reject(new Error('Failed to load Socket.io from CDN'));
                 };
                 document.head.appendChild(script);
             } else {
