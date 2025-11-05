@@ -60,14 +60,36 @@ export class NetworkManager {
         });
 
         this.socket.on('connect', () => {
-            console.log('Connected to server');
+            console.log('✓ Connected to server successfully');
+            console.log('Socket ID:', this.socket.id);
             this.connected = true;
             this.playerId = this.socket.id;
         });
 
-        this.socket.on('disconnect', () => {
-            console.log('Disconnected from server');
+        this.socket.on('connect_error', (error) => {
+            console.error('✗ Connection error:', error.message);
+            console.error('Server URL:', this.serverUrl);
+            console.error('Make sure the Socket.io server is running on port 8099');
             this.connected = false;
+        });
+
+        this.socket.on('connect_timeout', () => {
+            console.error('✗ Connection timeout');
+            console.error('Server URL:', this.serverUrl);
+            this.connected = false;
+        });
+
+        this.socket.on('disconnect', (reason) => {
+            console.log('Disconnected from server. Reason:', reason);
+            this.connected = false;
+        });
+
+        this.socket.on('reconnect_attempt', (attemptNumber) => {
+            console.log(`Reconnection attempt ${attemptNumber}...`);
+        });
+
+        this.socket.on('reconnect_failed', () => {
+            console.error('✗ Reconnection failed after all attempts');
         });
 
         this.socket.on('roomCreated', (data) => {
