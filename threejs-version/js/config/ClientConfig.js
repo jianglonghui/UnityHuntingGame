@@ -21,6 +21,7 @@ export const ClientConfig = {
      * 从当前页面URL自动检测服务器地址
      * 适用于部署到服务器后自动使用服务器地址
      * 也适用于本地开发时自动检测端口
+     * 支持子路径部署（如 /game/）
      */
     autoDetect() {
         // 1. 优先使用URL参数中的配置（方便部署时指定）
@@ -50,9 +51,10 @@ export const ClientConfig = {
             return this.SERVER_URL;
         }
 
-        // 3. 自动检测当前页面的地址和端口
+        // 3. 自动检测当前页面的地址、端口和路径
         const currentHost = window.location.hostname;
         const currentPort = window.location.port;
+        const currentPath = window.location.pathname;
 
         // 始终使用当前页面的地址
         this.SERVER_HOST = currentHost || 'localhost';
@@ -65,8 +67,35 @@ export const ClientConfig = {
             this.SERVER_PORT = window.location.protocol === 'https:' ? 443 : 80;
         }
 
-        console.log(`[ClientConfig] Auto-detected server: ${this.SERVER_URL}`);
-        return this.SERVER_URL;
+        // 提取基础路径（子路径部署支持）
+        // 例如: /game/index.html -> /game
+        //      /game/ -> /game
+        //      / -> /
+        let basePath = '';
+        if (currentPath && currentPath !== '/') {
+            // 移除文件名，只保留目录路径
+            const pathParts = currentPath.split('/').filter(p => p);
+            if (pathParts.length > 0) {
+                // 如果最后一部分包含 .html，移除它
+                if (pathParts[pathParts.length - 1].includes('.')) {
+                    pathParts.pop();
+                }
+                if (pathParts.length > 0) {
+                    basePath = '/' + pathParts.join('/');
+                }
+            }
+        }
+
+        // 构建完整的服务器URL（包含子路径）
+        const protocol = window.location.protocol;
+        const portStr = (this.SERVER_PORT === 80 && protocol === 'http:') ||
+                        (this.SERVER_PORT === 443 && protocol === 'https:')
+                        ? '' : `:${this.SERVER_PORT}`;
+
+        const fullUrl = `${protocol}//${this.SERVER_HOST}${portStr}${basePath}`;
+
+        console.log(`[ClientConfig] Auto-detected server: ${fullUrl}`);
+        return fullUrl;
     },
 
     /**
