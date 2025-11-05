@@ -841,6 +841,22 @@ export class Game {
         // 更新玩家
         if (this.player) {
             this.player.update(deltaTime);
+
+            // 联机模式下狙击手也需要同步位置
+            if (this.isMultiplayer && this.playerRole === 'sniper' && this.networkManager) {
+                this.networkManager.sendPlayerMove(
+                    {
+                        x: this.player.position.x,
+                        y: this.player.position.y,
+                        z: this.player.position.z
+                    },
+                    {
+                        x: this.player.rotation.x,
+                        y: this.player.rotation.y,
+                        z: 0
+                    }
+                );
+            }
         }
 
         // 更新敌人
