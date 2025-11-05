@@ -368,6 +368,15 @@ export class Game {
                 this.uiManager.updateZoom(zoom);
             }
         };
+
+        // 指针锁定状态改变（按ESC释放鼠标时自动暂停）
+        this.inputManager.onPointerLockChange = (isLocked, wasLocked) => {
+            // 如果游戏正在进行，且鼠标从锁定变为未锁定，则自动暂停
+            if (this.isPlaying && !this.isPaused && wasLocked && !isLocked) {
+                console.log('Pointer lock released, pausing game...');
+                this.pauseGame();
+            }
+        };
     }
 
     /**

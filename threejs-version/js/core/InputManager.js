@@ -14,6 +14,7 @@ export class InputManager {
         this.onKeyDown = null;
         this.onKeyUp = null;
         this.onWheel = null;
+        this.onPointerLockChange = null;
 
         this.setupEventListeners();
     }
@@ -111,7 +112,13 @@ export class InputManager {
      * 处理指针锁定改变
      */
     handlePointerLockChange() {
+        const wasLocked = this.mouseLocked;
         this.mouseLocked = document.pointerLockElement === document.body;
+
+        // 通知状态改变
+        if (this.onPointerLockChange) {
+            this.onPointerLockChange(this.mouseLocked, wasLocked);
+        }
     }
 
     /**
