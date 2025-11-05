@@ -152,6 +152,20 @@ export class PlayerEnemy {
     }
 
     /**
+     * 通用更新方法（每帧调用）
+     */
+    update(deltaTime) {
+        // 远程玩家不需要每帧更新（位置通过网络事件更新）
+        // 这个方法主要是为了兼容Game.js中的统一调用
+        if (!this.isLocal) {
+            return;
+        }
+
+        // 本地玩家的更新在 updateLocal 中处理
+        // 这里可以添加一些通用的逻辑，比如动画
+    }
+
+    /**
      * 更新远程玩家（从网络同步）
      */
     updateRemote(position, rotation) {
