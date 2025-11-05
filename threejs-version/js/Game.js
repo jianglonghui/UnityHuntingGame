@@ -276,6 +276,8 @@ export class Game {
 
                 // 限制垂直旋转角度
                 this.cameraRotationX = Math.max(-Math.PI / 3, Math.min(Math.PI / 2, this.cameraRotationX));
+
+                console.log('Camera rotation:', this.cameraRotationY.toFixed(2), this.cameraRotationX.toFixed(2));
             } else if (this.player) {
                 // 狙击手模式：第一人称视角
                 this.player.onMouseMove(x, y);
@@ -436,17 +438,18 @@ export class Game {
         // 获取点击提示元素
         const clickPrompt = document.getElementById('clickPrompt');
 
-        // 锁定鼠标（狙击手和敌人模式都需要）
-        this.inputManager.requestPointerLock();
-
         // 狙击手模式设置
         if (!isMultiplayer || this.playerRole === 'sniper') {
+            // 锁定鼠标
+            this.inputManager.requestPointerLock();
+
             // 默认开启瞄准镜
             this.player.isScoped = true;
             this.uiManager.showScope();
 
             // 显示点击提示
             if (clickPrompt) {
+                clickPrompt.textContent = '点击屏幕开始游戏';
                 clickPrompt.style.display = 'flex';
                 const hidePrompt = () => {
                     clickPrompt.style.display = 'none';
@@ -456,9 +459,17 @@ export class Game {
                 document.addEventListener('click', hidePrompt, { once: true });
             }
         } else {
-            // 敌人模式：隐藏点击提示和瞄准镜
+            // 敌人模式：需要点击激活鼠标控制
             if (clickPrompt) {
-                clickPrompt.style.display = 'none';
+                clickPrompt.textContent = '点击激活鼠标控制 - 移动鼠标旋转视角';
+                clickPrompt.style.display = 'flex';
+                const hidePrompt = () => {
+                    clickPrompt.style.display = 'none';
+                    this.inputManager.requestPointerLock();
+                    document.removeEventListener('click', hidePrompt);
+                };
+                clickPrompt.addEventListener('click', hidePrompt);
+                document.addEventListener('click', hidePrompt, { once: true });
             }
             // 初始化敌人视角旋转
             this.cameraRotationY = 0;
@@ -478,11 +489,43 @@ export class Game {
         if (!this.networkManager) return;
 
         // 初始化已存在的玩家（游戏开始时）
-        if (this.playerRole === 'sniper' && this.networkManager.currentPlayers) {
-            // 获取所有已连接的敌人玩家并创建它们
+        if (this.networkManager.currentPlayers) {
             this.networkManager.currentPlayers.forEach(player => {
-                if (player.role === 'enemy' && player.id !== this.networkManager.playerId) {
-                    const spawnPos = this.getRandomSpawnPosition();
+                // 不创建自己的模型
+                if (player.id === this.networkManager.playerId) return;
+
+                // 创建其他玩家的模型（包括狙击手和敌人）
+                const spawnPos = player.role === 'sniper' ?
+                    new THREE.Vector3(0, 10, 0) :  // 狙击手在山顶
+                    this.getRandomSpawnPosition(); // 敌人随机位置
+
+                const playerEnemy = new PlayerEnemy(
+                    this.scene,
+                    spawnPos,
+                    player.id,
+                    player.name,
+                    false  // 远程玩家
+                );
+                this.playerEnemies.set(player.id, playerEnemy);
+                console.log(`Spawned existing ${player.role} player:`, player.name);
+            });
+        }
+
+        // 玩家加入
+        this.networkManager.onPlayerJoined = (data) => {
+            console.log('Player joined:', data);
+
+            // 显示所有新加入的玩家（对于所有角色）
+            data.players.forEach(player => {
+                // 不创建自己的模型
+                if (player.id === this.networkManager.playerId) return;
+
+                // 如果还没有创建这个玩家的模型
+                if (!this.playerEnemies.has(player.id)) {
+                    const spawnPos = player.role === 'sniper' ?
+                        new THREE.Vector3(0, 10, 0) :  // 狙击手在山顶
+                        this.getRandomSpawnPosition(); // 敌人随机位置
+
                     const playerEnemy = new PlayerEnemy(
                         this.scene,
                         spawnPos,
@@ -491,30 +534,9 @@ export class Game {
                         false  // 远程玩家
                     );
                     this.playerEnemies.set(player.id, playerEnemy);
-                    console.log('Spawned existing enemy player:', player.name);
+                    console.log(`Created ${player.role} player:`, player.name);
                 }
             });
-        }
-
-        // 玩家加入
-        this.networkManager.onPlayerJoined = (data) => {
-            console.log('Player joined:', data);
-            // 在狙击手视角中显示新加入的敌人玩家
-            if (this.playerRole === 'sniper') {
-                data.players.forEach(player => {
-                    if (player.role === 'enemy' && !this.playerEnemies.has(player.id)) {
-                        const spawnPos = this.getRandomSpawnPosition();
-                        const playerEnemy = new PlayerEnemy(
-                            this.scene,
-                            spawnPos,
-                            player.id,
-                            player.name,
-                            false  // 远程玩家
-                        );
-                        this.playerEnemies.set(player.id, playerEnemy);
-                    }
-                });
-            }
         };
 
         // 玩家移动
