@@ -33,23 +33,14 @@ export class NetworkManager {
      */
     connect() {
         return new Promise((resolve, reject) => {
-            // 加载Socket.io客户端
+            // 检查socket.io是否已加载（应该在index.html中已经加载）
             if (typeof io === 'undefined') {
-                const script = document.createElement('script');
-                // 从CDN加载socket.io客户端库，避免跨域问题
-                script.src = 'https://cdn.socket.io/4.6.1/socket.io.min.js';
-                script.onload = () => {
-                    this.initializeSocket();
-                    resolve();
-                };
-                script.onerror = () => {
-                    reject(new Error('Failed to load Socket.io from CDN'));
-                };
-                document.head.appendChild(script);
-            } else {
-                this.initializeSocket();
-                resolve();
+                reject(new Error('Socket.io not loaded. Please ensure socket.io is loaded via <script> tag in index.html'));
+                return;
             }
+
+            this.initializeSocket();
+            resolve();
         });
     }
 
@@ -57,7 +48,16 @@ export class NetworkManager {
      * 初始化Socket连接
      */
     initializeSocket() {
-        this.socket = io(this.serverUrl);
+        console.log('[NetworkManager] Connecting to:', this.serverUrl);
+
+        // 配置socket.io选项
+        this.socket = io(this.serverUrl, {
+            transports: ['websocket', 'polling'], // 使用websocket和轮询
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            timeout: 10000
+        });
 
         this.socket.on('connect', () => {
             console.log('Connected to server');
