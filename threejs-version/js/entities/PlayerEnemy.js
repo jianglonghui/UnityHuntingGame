@@ -262,12 +262,17 @@ export class PlayerEnemy {
             this.laserSight.visible = this.isScoped;
 
             if (this.isScoped && rotation) {
-                // 根据旋转角度计算激光方向
-                const direction = new THREE.Vector3(
-                    Math.sin(rotation.y) * Math.cos(rotation.x || 0),
-                    -Math.sin(rotation.x || 0),
-                    Math.cos(rotation.y) * Math.cos(rotation.x || 0)
-                );
+                // 使用和 Player.js 相同的方式计算方向向量
+                // 创建欧拉角（YXZ 顺序，与 Player.js 保持一致）
+                const euler = new THREE.Euler(rotation.x, rotation.y, 0, 'YXZ');
+
+                // 创建临时四元数
+                const quaternion = new THREE.Quaternion();
+                quaternion.setFromEuler(euler);
+
+                // 计算前向方向向量（与 Player.getForwardVector() 相同）
+                const direction = new THREE.Vector3(0, 0, -1);
+                direction.applyQuaternion(quaternion);
 
                 const laserLength = 100;
                 const startPoint = this.position.clone();
