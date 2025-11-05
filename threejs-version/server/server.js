@@ -1,7 +1,11 @@
+// 加载环境变量
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 const path = require('path');
+const config = require('../config');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,7 +16,7 @@ const io = socketIO(server, {
     }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = config.SERVER_PORT;
 
 // 静态文件服务
 app.use(express.static(path.join(__dirname, '..')));
@@ -20,12 +24,8 @@ app.use(express.static(path.join(__dirname, '..')));
 // 房间管理
 const rooms = new Map();
 
-// 房间配置
-const ROOM_CONFIG = {
-    MAX_PLAYERS: 4,           // 1个狙击手 + 3个敌人
-    MIN_PLAYERS: 2,           // 至少需要1个狙击手 + 1个敌人
-    GAME_DURATION: 60,        // 60秒
-};
+// 房间配置（从配置文件读取）
+const ROOM_CONFIG = config.ROOM;
 
 // 房间状态
 const ROOM_STATE = {

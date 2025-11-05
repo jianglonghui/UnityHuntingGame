@@ -1,4 +1,6 @@
 // 网络管理器
+import { ClientConfig } from '../config/ClientConfig.js';
+
 export class NetworkManager {
     constructor() {
         this.socket = null;
@@ -7,7 +9,9 @@ export class NetworkManager {
         this.playerId = null;
         this.playerRole = null; // 'sniper' or 'enemy'
         this.currentPlayers = [];  // 当前房间的玩家列表
-        this.serverUrl = 'http://localhost:3000';
+
+        // 使用配置文件中的服务器地址，支持自动检测
+        this.serverUrl = ClientConfig.autoDetect();
 
         // 回调函数
         this.onRoomCreated = null;

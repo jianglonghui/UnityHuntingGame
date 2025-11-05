@@ -34,7 +34,18 @@ cd threejs-version/server
 npm run dev
 ```
 
-服务器将在 `http://localhost:3000` 上运行。
+### 方式3：自定义端口
+```bash
+# Linux/macOS
+PORT=8080 npm start
+
+# Windows
+set PORT=8080 && npm start
+```
+
+服务器将在 `http://localhost:3000` 上运行（默认端口）。
+
+**自定义端口和地址**：需要修改端口或部署到服务器？请查看 [端口配置指南](./PORT_CONFIGURATION.md)。
 
 ## 🎯 游戏流程
 

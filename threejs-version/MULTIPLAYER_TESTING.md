@@ -24,11 +24,13 @@ npm install  # 首次运行需要安装依赖
 npm start    # 或使用 npm run dev（开发模式）
 ```
 
-服务器将在 `http://localhost:3000` 运行。
+服务器将在 `http://localhost:3000` 运行（默认端口）。
+
+**自定义端口**：如果需要修改端口，请参考 [端口配置指南](./PORT_CONFIGURATION.md)。
 
 ### 2. 打开游戏
 
-在浏览器中访问：`http://localhost:3000`
+在浏览器中访问：`http://localhost:3000`（或你配置的端口）
 
 ## 🎮 测试流程
 
