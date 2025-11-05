@@ -1,0 +1,298 @@
+// 联机UI管理器
+export class MultiplayerUIManager {
+    constructor(networkManager) {
+        this.networkManager = networkManager;
+
+        // 菜单元素
+        this.mainMenu = document.getElementById('mainMenu');
+        this.multiplayerMenu = document.getElementById('multiplayerMenu');
+        this.roomListMenu = document.getElementById('roomListMenu');
+        this.createRoomMenu = document.getElementById('createRoomMenu');
+
+        // 输入元素
+        this.playerNameInput = document.getElementById('playerNameInput');
+
+        // 房间相关元素
+        this.roomListContainer = document.getElementById('roomListContainer');
+        this.roomIdDisplay = document.getElementById('roomIdDisplay');
+        this.yourRoleDisplay = document.getElementById('yourRoleDisplay');
+        this.playerCountDisplay = document.getElementById('playerCountDisplay');
+        this.lobbyPlayerList = document.getElementById('lobbyPlayerList');
+        this.startGameButton = document.getElementById('startGameButton');
+
+        // 回调函数
+        this.onSinglePlayer = null;
+        this.onMultiplayerGameStart = null;
+
+        this.setupButtons();
+        this.setupNetworkCallbacks();
+    }
+
+    /**
+     * 设置按钮事件
+     */
+    setupButtons() {
+        // 单人模式
+        document.getElementById('singlePlayerButton').addEventListener('click', () => {
+            if (this.onSinglePlayer) this.onSinglePlayer();
+        });
+
+        // 联机模式
+        document.getElementById('multiplayerButton').addEventListener('click', async () => {
+            await this.showMultiplayerMenu();
+        });
+
+        // 创建房间
+        document.getElementById('createRoomButton').addEventListener('click', () => {
+            this.createRoom();
+        });
+
+        // 加入房间（显示房间列表）
+        document.getElementById('joinRoomButton').addEventListener('click', () => {
+            this.showRoomList();
+        });
+
+        // 刷新房间列表
+        document.getElementById('refreshRoomsButton').addEventListener('click', () => {
+            this.refreshRoomList();
+        });
+
+        // 开始游戏
+        this.startGameButton.addEventListener('click', () => {
+            this.startGame();
+        });
+
+        // 离开房间
+        document.getElementById('leaveLobbyButton').addEventListener('click', () => {
+            this.leaveRoom();
+        });
+
+        // 返回按钮
+        document.getElementById('backToMainButton').addEventListener('click', () => {
+            this.showMainMenu();
+        });
+
+        document.getElementById('backToMultiplayerButton').addEventListener('click', () => {
+            this.showMultiplayerMenuFromRoomList();
+        });
+    }
+
+    /**
+     * 设置网络回调
+     */
+    setupNetworkCallbacks() {
+        this.networkManager.onRoomCreated = (data) => {
+            console.log('Room created:', data);
+            this.handleRoomCreated(data);
+        };
+
+        this.networkManager.onRoomJoined = (data) => {
+            console.log('Room joined:', data);
+            this.handleRoomJoined(data);
+        };
+
+        this.networkManager.onPlayerJoined = (data) => {
+            console.log('Player joined:', data);
+            this.updateLobbyPlayerList(data.players);
+        };
+
+        this.networkManager.onPlayerLeft = (data) => {
+            console.log('Player left:', data);
+            this.updateLobbyPlayerList(data.players);
+        };
+
+        this.networkManager.onGameStarted = (data) => {
+            console.log('Game started:', data);
+            if (this.onMultiplayerGameStart) {
+                this.onMultiplayerGameStart(data);
+            }
+        };
+
+        this.networkManager.onRoomClosed = () => {
+            alert('房主已离开，房间关闭');
+            this.showMainMenu();
+        };
+
+        this.networkManager.onError = (data) => {
+            alert('错误: ' + data.message);
+        };
+    }
+
+    /**
+     * 显示联机菜单
+     */
+    async showMultiplayerMenu() {
+        try {
+            await this.networkManager.connect();
+            this.hideAll();
+            this.multiplayerMenu.classList.remove('hidden');
+            this.multiplayerMenu.classList.add('active');
+        } catch (error) {
+            console.error('Failed to connect:', error);
+            alert('无法连接到服务器');
+        }
+    }
+
+    /**
+     * 显示联机菜单（从房间列表返回）
+     */
+    showMultiplayerMenuFromRoomList() {
+        this.hideAll();
+        this.multiplayerMenu.classList.remove('hidden');
+        this.multiplayerMenu.classList.add('active');
+    }
+
+    /**
+     * 创建房间
+     */
+    createRoom() {
+        const playerName = this.playerNameInput.value.trim() || '玩家';
+        this.networkManager.createRoom(playerName);
+    }
+
+    /**
+     * 显示房间列表
+     */
+    showRoomList() {
+        this.hideAll();
+        this.roomListMenu.classList.remove('hidden');
+        this.roomListMenu.classList.add('active');
+        this.refreshRoomList();
+    }
+
+    /**
+     * 刷新房间列表
+     */
+    refreshRoomList() {
+        this.roomListContainer.innerHTML = '<p class="loading-text">正在加载房间...</p>';
+        // TODO: 实现获取房间列表
+        setTimeout(() => {
+            this.roomListContainer.innerHTML = '<p class="loading-text">暂无可用房间</p>';
+        }, 500);
+    }
+
+    /**
+     * 处理房间创建成功
+     */
+    handleRoomCreated(data) {
+        this.hideAll();
+        this.createRoomMenu.classList.remove('hidden');
+        this.createRoomMenu.classList.add('active');
+
+        this.roomIdDisplay.textContent = data.roomId;
+        this.yourRoleDisplay.textContent = this.getRoleDisplayName(data.role);
+        this.updateLobbyPlayerList(data.players);
+
+        // 房主可以开始游戏
+        this.startGameButton.disabled = data.players.length < 2;
+    }
+
+    /**
+     * 处理加入房间成功
+     */
+    handleRoomJoined(data) {
+        this.hideAll();
+        this.createRoomMenu.classList.remove('hidden');
+        this.createRoomMenu.classList.add('active');
+
+        this.roomIdDisplay.textContent = data.roomId;
+        this.yourRoleDisplay.textContent = this.getRoleDisplayName(data.role);
+        this.updateLobbyPlayerList(data.players);
+
+        // 非房主不能开始游戏
+        this.startGameButton.style.display = 'none';
+    }
+
+    /**
+     * 更新大厅玩家列表
+     */
+    updateLobbyPlayerList(players) {
+        this.playerCountDisplay.textContent = players.length;
+
+        this.lobbyPlayerList.innerHTML = '';
+        players.forEach(player => {
+            const playerItem = document.createElement('div');
+            playerItem.className = 'lobby-player-item';
+
+            const playerName = document.createElement('span');
+            playerName.className = 'player-name';
+            playerName.textContent = player.name;
+
+            const playerRole = document.createElement('span');
+            playerRole.className = `player-role ${player.role}`;
+            playerRole.textContent = this.getRoleDisplayName(player.role);
+
+            playerItem.appendChild(playerName);
+            playerItem.appendChild(playerRole);
+            this.lobbyPlayerList.appendChild(playerItem);
+        });
+
+        // 更新开始按钮状态
+        if (this.startGameButton.style.display !== 'none') {
+            this.startGameButton.disabled = players.length < 2;
+        }
+    }
+
+    /**
+     * 开始游戏
+     */
+    startGame() {
+        this.networkManager.startGame();
+    }
+
+    /**
+     * 离开房间
+     */
+    leaveRoom() {
+        this.networkManager.leaveRoom();
+        this.showMultiplayerMenuFromRoomList();
+    }
+
+    /**
+     * 显示主菜单
+     */
+    showMainMenu() {
+        this.hideAll();
+        this.mainMenu.classList.remove('hidden');
+        this.mainMenu.classList.add('active');
+    }
+
+    /**
+     * 隐藏所有菜单
+     */
+    hideAll() {
+        this.mainMenu.classList.add('hidden');
+        this.mainMenu.classList.remove('active');
+
+        this.multiplayerMenu.classList.add('hidden');
+        this.multiplayerMenu.classList.remove('active');
+
+        this.roomListMenu.classList.add('hidden');
+        this.roomListMenu.classList.remove('active');
+
+        this.createRoomMenu.classList.add('hidden');
+        this.createRoomMenu.classList.remove('active');
+    }
+
+    /**
+     * 获取角色显示名称
+     */
+    getRoleDisplayName(role) {
+        switch (role) {
+            case 'sniper':
+                return '狙击手';
+            case 'enemy':
+                return '敌人';
+            default:
+                return '未知';
+        }
+    }
+
+    /**
+     * 显示游戏UI
+     */
+    showGameUI() {
+        this.hideAll();
+        document.getElementById('gameUI').classList.remove('hidden');
+    }
+}
