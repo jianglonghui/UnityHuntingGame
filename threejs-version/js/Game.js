@@ -33,6 +33,11 @@ export class Game {
         this.localPlayerEnemy = null;    // 本地玩家控制的敌人
         this.playerRole = null;          // 'sniper' 或 'enemy'
 
+        // 敌人视角控制
+        this.cameraRotationY = 0;        // 水平旋转
+        this.cameraRotationX = 0.3;      // 垂直旋转（俯视角度）
+        this.cameraSensitivity = 0.002;  // 鼠标灵敏度
+
         // 管理器
         this.scoreManager = new ScoreManager();
         this.timeManager = new TimeManager(60);
@@ -262,7 +267,17 @@ export class Game {
     setupInputCallbacks() {
         // 鼠标移动
         this.inputManager.onMouseMove = (x, y) => {
-            if (this.player && this.isPlaying && !this.isPaused) {
+            if (!this.isPlaying || this.isPaused) return;
+
+            if (this.isMultiplayer && this.playerRole === 'enemy') {
+                // 敌人模式：旋转第三人称相机
+                this.cameraRotationY -= x * this.cameraSensitivity;
+                this.cameraRotationX -= y * this.cameraSensitivity;
+
+                // 限制垂直旋转角度
+                this.cameraRotationX = Math.max(-Math.PI / 3, Math.min(Math.PI / 2, this.cameraRotationX));
+            } else if (this.player) {
+                // 狙击手模式：第一人称视角
                 this.player.onMouseMove(x, y);
             }
         };
@@ -293,9 +308,15 @@ export class Game {
             else if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
                 this.toggleScope();
             }
-            // 空格射击
+            // 空格键：狙击手射击 / 敌人跳跃
             else if (event.code === 'Space') {
-                this.shoot();
+                if (this.isMultiplayer && this.playerRole === 'enemy' && this.localPlayerEnemy) {
+                    // 敌人模式：跳跃
+                    this.localPlayerEnemy.keys.jump = true;
+                } else {
+                    // 狙击手模式：射击
+                    this.shoot();
+                }
             }
 
             // WASD移动（联机敌人模式）
@@ -415,11 +436,11 @@ export class Game {
         // 获取点击提示元素
         const clickPrompt = document.getElementById('clickPrompt');
 
+        // 锁定鼠标（狙击手和敌人模式都需要）
+        this.inputManager.requestPointerLock();
+
         // 狙击手模式设置
         if (!isMultiplayer || this.playerRole === 'sniper') {
-            // 锁定鼠标
-            this.inputManager.requestPointerLock();
-
             // 默认开启瞄准镜
             this.player.isScoped = true;
             this.uiManager.showScope();
@@ -435,10 +456,13 @@ export class Game {
                 document.addEventListener('click', hidePrompt, { once: true });
             }
         } else {
-            // 敌人模式：不需要鼠标锁定和瞄准镜
+            // 敌人模式：隐藏点击提示和瞄准镜
             if (clickPrompt) {
                 clickPrompt.style.display = 'none';
             }
+            // 初始化敌人视角旋转
+            this.cameraRotationY = 0;
+            this.cameraRotationX = 0.3;
         }
 
         // 开始渲染循环
@@ -816,12 +840,26 @@ export class Game {
                     this.networkManager.sendPlayerMove(moveData.position, moveData.rotation);
                 }
 
-                // 更新第三人称相机
+                // 更新第三人称相机（跟随玩家并响应鼠标旋转）
                 if (this.thirdPersonCamera) {
-                    const offset = new THREE.Vector3(0, 10, 15);
+                    const cameraDistance = 8;  // 相机距离玩家的距离
+                    const cameraHeight = 4;    // 相机高度偏移
+
+                    // 根据旋转角度计算相机位置
+                    const offsetX = Math.sin(this.cameraRotationY) * Math.cos(this.cameraRotationX) * cameraDistance;
+                    const offsetY = Math.sin(this.cameraRotationX) * cameraDistance + cameraHeight;
+                    const offsetZ = Math.cos(this.cameraRotationY) * Math.cos(this.cameraRotationX) * cameraDistance;
+
+                    const offset = new THREE.Vector3(offsetX, offsetY, offsetZ);
                     const targetPos = this.localPlayerEnemy.position.clone().add(offset);
-                    this.thirdPersonCamera.position.lerp(targetPos, 0.1);
-                    this.thirdPersonCamera.lookAt(this.localPlayerEnemy.position);
+
+                    // 平滑移动相机
+                    this.thirdPersonCamera.position.lerp(targetPos, 0.15);
+
+                    // 相机看向玩家位置稍微上方
+                    const lookAtTarget = this.localPlayerEnemy.position.clone();
+                    lookAtTarget.y += 1.5;  // 看向玩家上半身
+                    this.thirdPersonCamera.lookAt(lookAtTarget);
                 }
             }
 

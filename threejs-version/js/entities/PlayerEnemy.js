@@ -14,6 +14,13 @@ export class PlayerEnemy {
         this.speed = 5.0;  // 比AI敌人稍快
         this.rotation = 0;
 
+        // 跳跃属性
+        this.isGrounded = true;
+        this.jumpVelocity = 0;
+        this.jumpForce = 8.0;
+        this.gravity = -20.0;
+        this.groundLevel = 0;
+
         // 方向向量
         this.forward = new THREE.Vector3(0, 0, 1);
 
@@ -22,7 +29,8 @@ export class PlayerEnemy {
             forward: false,
             backward: false,
             left: false,
-            right: false
+            right: false,
+            jump: false
         };
 
         // 创建3D模型
@@ -100,7 +108,7 @@ export class PlayerEnemy {
     updateLocal(deltaTime) {
         if (!this.isLocal || !this.isAlive) return;
 
-        // 计算移动方向
+        // 计算移动方向（水平移动）
         const moveDirection = new THREE.Vector3(0, 0, 0);
 
         if (this.keys.forward) moveDirection.z -= 1;
@@ -113,15 +121,36 @@ export class PlayerEnemy {
             moveDirection.normalize();
             this.velocity.set(
                 moveDirection.x * this.speed,
-                0,
+                this.velocity.y,  // 保持Y轴速度（跳跃）
                 moveDirection.z * this.speed
             );
         } else {
-            this.velocity.set(0, 0, 0);
+            this.velocity.set(0, this.velocity.y, 0);
         }
+
+        // 跳跃逻辑
+        if (this.keys.jump && this.isGrounded) {
+            this.jumpVelocity = this.jumpForce;
+            this.isGrounded = false;
+            this.keys.jump = false;  // 防止连续跳跃
+        }
+
+        // 应用重力
+        if (!this.isGrounded) {
+            this.jumpVelocity += this.gravity * deltaTime;
+        }
+
+        this.velocity.y = this.jumpVelocity;
 
         // 应用移动
         this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+        // 地面检测
+        if (this.position.y <= this.groundLevel) {
+            this.position.y = this.groundLevel;
+            this.jumpVelocity = 0;
+            this.isGrounded = true;
+        }
 
         // 限制在地图范围内
         const mapSize = 90;
@@ -129,7 +158,8 @@ export class PlayerEnemy {
         this.position.z = Math.max(-mapSize, Math.min(mapSize, this.position.z));
 
         // 更新旋转（朝向移动方向）
-        if (this.velocity.length() > 0.1) {
+        const horizontalVelocity = new THREE.Vector2(this.velocity.x, this.velocity.z);
+        if (horizontalVelocity.length() > 0.1) {
             this.rotation = Math.atan2(this.velocity.x, this.velocity.z);
         }
 

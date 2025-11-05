@@ -52,6 +52,13 @@ class Room {
     }
 
     addPlayer(socketId, playerName) {
+        // 检查名字是否重复
+        for (const player of this.players.values()) {
+            if (player.name === playerName) {
+                return { error: '名字已被使用，请换一个名字' };
+            }
+        }
+
         // 分配角色
         const role = this.players.size === 0 ? PLAYER_ROLE.SNIPER : PLAYER_ROLE.ENEMY;
 
@@ -68,7 +75,7 @@ class Room {
             this.enemyLives.set(socketId, 3); // 每个玩家敌人3条命
         }
 
-        return role;
+        return { role };
     }
 
     removePlayer(socketId) {
@@ -172,7 +179,13 @@ io.on('connection', (socket) => {
     socket.on('createRoom', (playerName) => {
         const roomId = generateRoomId();
         const room = new Room(roomId, socket.id);
-        const role = room.addPlayer(socket.id, playerName);
+        const result = room.addPlayer(socket.id, playerName);
+
+        // 检查是否有错误（名字重复）
+        if (result.error) {
+            socket.emit('error', { message: result.error });
+            return;
+        }
 
         rooms.set(roomId, room);
         socket.join(roomId);
@@ -180,7 +193,7 @@ io.on('connection', (socket) => {
 
         socket.emit('roomCreated', {
             roomId: roomId,
-            role: role,
+            role: result.role,
             players: room.getPlayers()
         });
 
@@ -192,27 +205,34 @@ io.on('connection', (socket) => {
         const room = rooms.get(roomId);
 
         if (!room) {
-            socket.emit('error', { message: 'Room not found' });
+            socket.emit('error', { message: '房间不存在' });
             return;
         }
 
         if (room.getPlayerCount() >= ROOM_CONFIG.MAX_PLAYERS) {
-            socket.emit('error', { message: 'Room is full' });
+            socket.emit('error', { message: '房间已满' });
             return;
         }
 
         if (room.state !== ROOM_STATE.WAITING) {
-            socket.emit('error', { message: 'Game already started' });
+            socket.emit('error', { message: '游戏已经开始' });
             return;
         }
 
-        const role = room.addPlayer(socket.id, playerName);
+        const result = room.addPlayer(socket.id, playerName);
+
+        // 检查是否有错误（名字重复）
+        if (result.error) {
+            socket.emit('error', { message: result.error });
+            return;
+        }
+
         socket.join(roomId);
         socket.roomId = roomId;
 
         socket.emit('roomJoined', {
             roomId: roomId,
-            role: role,
+            role: result.role,
             players: room.getPlayers()
         });
 
@@ -222,7 +242,7 @@ io.on('connection', (socket) => {
             players: room.getPlayers()
         });
 
-        console.log(`${playerName} joined room ${roomId} as ${role}`);
+        console.log(`${playerName} joined room ${roomId} as ${result.role}`);
     });
 
     // 开始游戏
