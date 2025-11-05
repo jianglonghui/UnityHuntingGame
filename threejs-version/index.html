@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>狩猎游戏 - Three.js版本</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 主菜单 -->
+    <div id="mainMenu" class="menu active">
+        <h1>狩猎游戏</h1>
+        <button id="playButton" class="menu-button">开始游戏</button>
+        <button id="instructionsButton" class="menu-button">游戏说明</button>
+        <button id="quitButton" class="menu-button">退出</button>
+        <div id="highScoreDisplay">最高分: <span id="highScore">0</span></div>
+    </div>
+
+    <!-- 游戏说明 -->
+    <div id="instructionsMenu" class="menu">
+        <h2>游戏说明</h2>
+        <div class="instructions-content">
+            <p><strong>目标：</strong>在60秒内射杀尽可能多的敌人</p>
+            <p><strong>控制：</strong></p>
+            <ul>
+                <li>鼠标移动 - 瞄准</li>
+                <li>右键/Shift - 开启瞄准镜</li>
+                <li>滚轮 - 调整缩放</li>
+                <li>左键/空格 - 射击</li>
+                <li>P - 暂停</li>
+            </ul>
+            <p><strong>提示：</strong>红色敌人是领袖，会主动攻击你！</p>
+        </div>
+        <button id="backButton" class="menu-button">返回</button>
+    </div>
+
+    <!-- 游戏UI -->
+    <div id="gameUI" class="hidden">
+        <div id="hud">
+            <div class="hud-item">
+                <span>得分: </span>
+                <span id="score">0</span>
+            </div>
+            <div class="hud-item">
+                <span>时间: </span>
+                <span id="time">60</span>
+            </div>
+            <div class="hud-item">
+                <span>缩放: </span>
+                <span id="zoom">1x</span>
+            </div>
+        </div>
+
+        <!-- 准星 -->
+        <div id="crosshair">
+            <div class="crosshair-line horizontal"></div>
+            <div class="crosshair-line vertical"></div>
+            <div class="crosshair-center"></div>
+        </div>
+
+        <!-- 瞄准镜 -->
+        <div id="scope" class="hidden">
+            <div class="scope-overlay">
+                <div class="scope-circle"></div>
+                <div class="scope-line horizontal"></div>
+                <div class="scope-line vertical"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 暂停菜单 -->
+    <div id="pauseMenu" class="menu hidden">
+        <h2>暂停</h2>
+        <button id="resumeButton" class="menu-button">继续游戏</button>
+        <button id="mainMenuButton" class="menu-button">返回主菜单</button>
+    </div>
+
+    <!-- 游戏结束菜单 -->
+    <div id="gameOverMenu" class="menu hidden">
+        <h2>游戏结束</h2>
+        <div class="game-over-stats">
+            <p>本次得分: <span id="finalScore">0</span></p>
+            <p>最高分: <span id="finalHighScore">0</span></p>
+            <p id="newHighScore" class="hidden">🎉 新纪录！</p>
+        </div>
+        <button id="playAgainButton" class="menu-button">再玩一次</button>
+        <button id="menuButton" class="menu-button">返回主菜单</button>
+    </div>
+
+    <!-- Three.js 渲染容器 -->
+    <div id="game-container"></div>
+
+    <!-- 引入 Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+    <!-- 游戏脚本 -->
+    <script type="module" src="js/utils/Vector3Utils.js"></script>
+    <script type="module" src="js/ai/Steerings.js"></script>
+    <script type="module" src="js/ai/FiniteStateMachine.js"></script>
+    <script type="module" src="js/entities/Enemy.js"></script>
+    <script type="module" src="js/entities/Player.js"></script>
+    <script type="module" src="js/entities/Bullet.js"></script>
+    <script type="module" src="js/entities/Spawner.js"></script>
+    <script type="module" src="js/core/ScoreManager.js"></script>
+    <script type="module" src="js/core/TimeManager.js"></script>
+    <script type="module" src="js/core/InputManager.js"></script>
+    <script type="module" src="js/core/PhysicsManager.js"></script>
+    <script type="module" src="js/ui/UIManager.js"></script>
+    <script type="module" src="js/Game.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+// UI管理器
+export class UIManager {
+    constructor() {
+        // 菜单元素
+        this.mainMenu = document.getElementById('mainMenu');
+        this.instructionsMenu = document.getElementById('instructionsMenu');
+        this.pauseMenu = document.getElementById('pauseMenu');
+        this.gameOverMenu = document.getElementById('gameOverMenu');
+
+        // HUD元素
+        this.gameUI = document.getElementById('gameUI');
+        this.scoreText = document.getElementById('score');
+        this.timeText = document.getElementById('time');
+        this.zoomText = document.getElementById('zoom');
+        this.scopeOverlay = document.getElementById('scope');
+
+        // 游戏结束元素
+        this.finalScoreText = document.getElementById('finalScore');
+        this.finalHighScoreText = document.getElementById('finalHighScore');
+        this.newHighScoreText = document.getElementById('newHighScore');
+
+        // 主菜单元素
+        this.highScoreText = document.getElementById('highScore');
+
+        // 按钮回调
+        this.onPlayButton = null;
+        this.onResumeButton = null;
+        this.onMainMenuButton = null;
+        this.onQuitButton = null;
+
+        this.setupButtons();
+    }
+
+    /**
+     * 设置按钮事件
+     */
+    setupButtons() {
+        // 主菜单按钮
+        document.getElementById('playButton').addEventListener('click', () => {
+            if (this.onPlayButton) this.onPlayButton();
+        });
+
+        document.getElementById('instructionsButton').addEventListener('click', () => {
+            this.showInstructions();
+        });
+
+        document.getElementById('backButton').addEventListener('click', () => {
+            this.showMainMenu();
+        });
+
+        document.getElementById('quitButton').addEventListener('click', () => {
+            window.close();
+        });
+
+        // 暂停菜单按钮
+        document.getElementById('resumeButton').addEventListener('click', () => {
+            if (this.onResumeButton) this.onResumeButton();
+        });
+
+        document.getElementById('mainMenuButton').addEventListener('click', () => {
+            if (this.onMainMenuButton) this.onMainMenuButton();
+        });
+
+        // 游戏结束按钮
+        document.getElementById('playAgainButton').addEventListener('click', () => {
+            if (this.onPlayButton) this.onPlayButton();
+        });
+
+        document.getElementById('menuButton').addEventListener('click', () => {
+            if (this.onMainMenuButton) this.onMainMenuButton();
+        });
+    }
+
+    /**
+     * 显示主菜单
+     */
+    showMainMenu() {
+        this.hideAll();
+        this.mainMenu.classList.add('active');
+    }
+
+    /**
+     * 显示游戏说明
+     */
+    showInstructions() {
+        this.hideAll();
+        this.instructionsMenu.classList.add('active');
+    }
+
+    /**
+     * 显示游戏UI
+     */
+    showGameUI() {
+        this.hideAll();
+        this.gameUI.classList.remove('hidden');
+    }
+
+    /**
+     * 显示暂停菜单
+     */
+    showPauseMenu() {
+        this.pauseMenu.classList.remove('hidden');
+    }
+
+    /**
+     * 隐藏暂停菜单
+     */
+    hidePauseMenu() {
+        this.pauseMenu.classList.add('hidden');
+    }
+
+    /**
+     * 显示游戏结束菜单
+     */
+    showGameOverMenu(score, highScore, isNewHighScore) {
+        this.hideAll();
+        this.finalScoreText.textContent = score;
+        this.finalHighScoreText.textContent = highScore;
+
+        if (isNewHighScore) {
+            this.newHighScoreText.classList.remove('hidden');
+        } else {
+            this.newHighScoreText.classList.add('hidden');
+        }
+
+        this.gameOverMenu.classList.remove('hidden');
+    }
+
+    /**
+     * 隐藏所有菜单
+     */
+    hideAll() {
+        this.mainMenu.classList.remove('active');
+        this.instructionsMenu.classList.remove('active');
+        this.pauseMenu.classList.add('hidden');
+        this.gameOverMenu.classList.add('hidden');
+        this.gameUI.classList.add('hidden');
+    }
+
+    /**
+     * 更新分数显示
+     */
+    updateScore(score) {
+        this.scoreText.textContent = score;
+    }
+
+    /**
+     * 更新时间显示
+     */
+    updateTime(time) {
+        this.timeText.textContent = time;
+    }
+
+    /**
+     * 更新缩放显示
+     */
+    updateZoom(zoom) {
+        this.zoomText.textContent = zoom.toFixed(1) + 'x';
+    }
+
+    /**
+     * 更新最高分显示
+     */
+    updateHighScore(highScore) {
+        this.highScoreText.textContent = highScore;
+    }
+
+    /**
+     * 显示瞄准镜
+     */
+    showScope() {
+        this.scopeOverlay.classList.remove('hidden');
+    }
+
+    /**
+     * 隐藏瞄准镜
+     */
+    hideScope() {
+        this.scopeOverlay.classList.add('hidden');
+    }
+
+    /**
+     * 切换瞄准镜显示
+     */
+    toggleScope(show) {
+        if (show) {
+            this.showScope();
+        } else {
+            this.hideScope();
+        }
+    }
+}
