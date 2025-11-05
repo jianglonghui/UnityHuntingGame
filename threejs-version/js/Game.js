@@ -251,10 +251,11 @@ export class Game {
      */
     setupUICallbacks() {
         this.uiManager.onPlayButton = () => {
-            // 在多人模式下，"再玩一次"应该返回主菜单而不是开始新游戏
-            if (this.isMultiplayer) {
-                this.returnToMainMenu();
+            // 在多人模式下，"再来一次"应该返回房间等待界面
+            if (this.isMultiplayer && this.multiplayerUIManager) {
+                this.multiplayerUIManager.showLobby();
             } else {
+                // 单人模式：重新开始游戏
                 this.startGame();
             }
         };
@@ -638,7 +639,7 @@ export class Game {
         // 游戏结束
         this.networkManager.onGameOver = (data) => {
             console.log('Game over:', data);
-            this.gameOver(data.reason);
+            this.gameOver(data.reason, data.sniperScore || data.finalScore || 0);
         };
 
         // 房间关闭
@@ -831,7 +832,7 @@ export class Game {
     /**
      * 游戏结束
      */
-    gameOver(reason = 'timeout') {
+    gameOver(reason = 'timeout', multiplayerScore = 0) {
         // 防止重复触发
         if (this.isGameOver) return;
 
@@ -853,11 +854,12 @@ export class Game {
 
         // 延迟显示菜单，给玩家一点反应时间
         setTimeout(() => {
-            if (this.isMultiplayer && this.multiplayerUIManager) {
-                // 联机模式：返回房间等待界面
-                this.multiplayerUIManager.showLobby();
+            // 无论单人还是联机模式，都显示游戏结束菜单
+            if (this.isMultiplayer) {
+                // 联机模式：显示狙击手得分，不显示最高分和新记录
+                this.uiManager.showGameOverMenu(multiplayerScore, 0, false);
             } else {
-                // 单人模式：显示游戏结束菜单
+                // 单人模式：正常显示得分和最高分
                 const isNewHighScore = this.scoreManager.saveHighScore();
                 this.uiManager.showGameOverMenu(
                     this.scoreManager.getScore(),

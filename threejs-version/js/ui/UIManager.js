@@ -24,6 +24,7 @@ export class UIManager {
         // 游戏结束元素
         this.finalScoreText = document.getElementById('finalScore');
         this.finalHighScoreText = document.getElementById('finalHighScore');
+        this.highScoreDisplay = document.getElementById('highScoreDisplay');
         this.newHighScoreText = document.getElementById('newHighScore');
 
         // 主菜单元素
@@ -154,10 +155,17 @@ export class UIManager {
         this.finalScoreText.textContent = score;
         this.finalHighScoreText.textContent = highScore;
 
-        if (isNewHighScore) {
-            this.newHighScoreText.classList.remove('hidden');
-        } else {
+        // 联机模式下隐藏最高分（highScore === 0）
+        if (highScore === 0) {
+            this.highScoreDisplay.style.display = 'none';
             this.newHighScoreText.classList.add('hidden');
+        } else {
+            this.highScoreDisplay.style.display = 'block';
+            if (isNewHighScore) {
+                this.newHighScoreText.classList.remove('hidden');
+            } else {
+                this.newHighScoreText.classList.add('hidden');
+            }
         }
 
         // 确保游戏结束菜单显示
