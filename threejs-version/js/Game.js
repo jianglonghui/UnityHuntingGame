@@ -717,6 +717,7 @@ export class Game {
         if (shootData) {
             // 使用射线检测立即击中
             const ray = this.player.getShootRay();
+            const raycaster = new THREE.Raycaster(ray.origin, ray.direction);
             let hitEnemyId = null;
 
             if (this.isMultiplayer) {
@@ -727,7 +728,7 @@ export class Game {
                 for (const [id, playerEnemy] of this.playerEnemies) {
                     if (!playerEnemy.isAlive) continue;
 
-                    const intersect = ray.intersectObject(playerEnemy.mesh, true);
+                    const intersect = raycaster.intersectObject(playerEnemy.mesh, true);
                     if (intersect.length > 0 && intersect[0].distance < closestDistance) {
                         closestDistance = intersect[0].distance;
                         closestEnemy = playerEnemy;
