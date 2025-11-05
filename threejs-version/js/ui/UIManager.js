@@ -76,6 +76,7 @@ export class UIManager {
      */
     showMainMenu() {
         this.hideAll();
+        this.mainMenu.classList.remove('hidden');
         this.mainMenu.classList.add('active');
     }
 
@@ -84,6 +85,7 @@ export class UIManager {
      */
     showInstructions() {
         this.hideAll();
+        this.instructionsMenu.classList.remove('hidden');
         this.instructionsMenu.classList.add('active');
     }
 
@@ -139,12 +141,19 @@ export class UIManager {
      * 隐藏所有菜单
      */
     hideAll() {
+        // 隐藏所有菜单并移除active类
+        this.mainMenu.classList.add('hidden');
         this.mainMenu.classList.remove('active');
+
+        this.instructionsMenu.classList.add('hidden');
         this.instructionsMenu.classList.remove('active');
+
         this.pauseMenu.classList.add('hidden');
         this.pauseMenu.classList.remove('active');
+
         this.gameOverMenu.classList.add('hidden');
         this.gameOverMenu.classList.remove('active');
+
         this.gameUI.classList.add('hidden');
     }
 
