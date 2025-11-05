@@ -105,10 +105,10 @@ export class PlayerEnemy {
     /**
      * 更新本地玩家
      */
-    updateLocal(deltaTime) {
+    updateLocal(deltaTime, cameraRotation = 0) {
         if (!this.isLocal || !this.isAlive) return;
 
-        // 计算移动方向（水平移动）
+        // 计算移动方向（相对于相机）
         const moveDirection = new THREE.Vector3(0, 0, 0);
 
         if (this.keys.forward) moveDirection.z -= 1;
@@ -119,10 +119,15 @@ export class PlayerEnemy {
         // 归一化并应用速度
         if (moveDirection.length() > 0) {
             moveDirection.normalize();
+
+            // 根据相机旋转角度转换移动方向
+            const rotatedX = moveDirection.x * Math.cos(cameraRotation) - moveDirection.z * Math.sin(cameraRotation);
+            const rotatedZ = moveDirection.x * Math.sin(cameraRotation) + moveDirection.z * Math.cos(cameraRotation);
+
             this.velocity.set(
-                moveDirection.x * this.speed,
+                rotatedX * this.speed,
                 this.velocity.y,  // 保持Y轴速度（跳跃）
-                moveDirection.z * this.speed
+                rotatedZ * this.speed
             );
         } else {
             this.velocity.set(0, this.velocity.y, 0);

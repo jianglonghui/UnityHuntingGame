@@ -856,7 +856,7 @@ export class Game {
         if (this.isMultiplayer) {
             // 更新本地玩家敌人
             if (this.localPlayerEnemy && this.playerRole === 'enemy') {
-                const moveData = this.localPlayerEnemy.updateLocal(deltaTime);
+                const moveData = this.localPlayerEnemy.updateLocal(deltaTime, this.cameraRotationY);
 
                 // 发送位置更新到服务器（每帧发送）
                 if (moveData && this.networkManager) {
