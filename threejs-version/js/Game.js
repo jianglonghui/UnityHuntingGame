@@ -2,6 +2,7 @@
 import { Player } from './entities/Player.js';
 import { Spawner } from './entities/Spawner.js';
 import { Bullet } from './entities/Bullet.js';
+import { PlayerEnemy } from './entities/PlayerEnemy.js';
 import { ScoreManager } from './core/ScoreManager.js';
 import { TimeManager } from './core/TimeManager.js';
 import { InputManager } from './core/InputManager.js';
@@ -24,6 +25,13 @@ export class Game {
         this.player = null;
         this.spawner = null;
         this.bullets = [];
+
+        // 联机模式
+        this.isMultiplayer = false;
+        this.networkManager = null;
+        this.playerEnemies = new Map();  // 存储玩家控制的敌人
+        this.localPlayerEnemy = null;    // 本地玩家控制的敌人
+        this.playerRole = null;          // 'sniper' 或 'enemy'
 
         // 管理器
         this.scoreManager = new ScoreManager();
@@ -282,6 +290,45 @@ export class Game {
             else if (event.code === 'Space') {
                 this.shoot();
             }
+
+            // WASD移动（联机敌人模式）
+            if (this.isMultiplayer && this.playerRole === 'enemy' && this.localPlayerEnemy) {
+                switch (event.code) {
+                    case 'KeyW':
+                        this.localPlayerEnemy.keys.forward = true;
+                        break;
+                    case 'KeyS':
+                        this.localPlayerEnemy.keys.backward = true;
+                        break;
+                    case 'KeyA':
+                        this.localPlayerEnemy.keys.left = true;
+                        break;
+                    case 'KeyD':
+                        this.localPlayerEnemy.keys.right = true;
+                        break;
+                }
+            }
+        };
+
+        // 键盘抬起
+        this.inputManager.onKeyUp = (event) => {
+            // WASD移动（联机敌人模式）
+            if (this.isMultiplayer && this.playerRole === 'enemy' && this.localPlayerEnemy) {
+                switch (event.code) {
+                    case 'KeyW':
+                        this.localPlayerEnemy.keys.forward = false;
+                        break;
+                    case 'KeyS':
+                        this.localPlayerEnemy.keys.backward = false;
+                        break;
+                    case 'KeyA':
+                        this.localPlayerEnemy.keys.left = false;
+                        break;
+                    case 'KeyD':
+                        this.localPlayerEnemy.keys.right = false;
+                        break;
+                }
+            }
         };
 
         // 滚轮缩放
@@ -296,54 +343,228 @@ export class Game {
     /**
      * 开始游戏
      */
-    startGame() {
-        console.log('Starting game...');
+    startGame(isMultiplayer = false, networkManager = null) {
+        console.log('Starting game...', isMultiplayer ? 'Multiplayer Mode' : 'Single Player Mode');
 
         // 重置游戏状态
         this.resetGame();
 
-        // 创建玩家
-        this.player = new Player(this.scene, new THREE.Vector3(0, 10, 0));
+        // 设置联机模式
+        this.isMultiplayer = isMultiplayer;
+        this.networkManager = networkManager;
 
-        // 创建敌人生成器
-        this.spawner = new Spawner(
-            this.scene,
-            new THREE.Vector3(0, 0, 0),
-            80,   // 生成半径
-            100,  // 敌人数量
-            10    // 每10个敌人1个领袖
-        );
-        this.spawner.setObstacles(this.obstacles);
-        this.spawner.spawnAll();
+        if (isMultiplayer && networkManager) {
+            // 联机模式
+            this.playerRole = networkManager.playerRole;
+            this.setupNetworkCallbacks();
+
+            if (this.playerRole === 'sniper') {
+                // 狙击手：创建第一人称视角
+                this.player = new Player(this.scene, new THREE.Vector3(0, 10, 0));
+
+                // 不创建AI敌人，等待玩家加入
+                console.log('Sniper mode: Waiting for enemy players...');
+            } else {
+                // 敌人：创建第三人称视角的玩家控制角色
+                const spawnPos = this.getRandomSpawnPosition();
+                this.localPlayerEnemy = new PlayerEnemy(
+                    this.scene,
+                    spawnPos,
+                    networkManager.playerId,
+                    '本地玩家',
+                    true  // isLocal
+                );
+                this.playerEnemies.set(networkManager.playerId, this.localPlayerEnemy);
+
+                // 创建第三人称相机
+                this.createThirdPersonCamera();
+
+                console.log('Enemy mode: Use WASD to move, avoid the sniper!');
+            }
+        } else {
+            // 单人模式
+            this.player = new Player(this.scene, new THREE.Vector3(0, 10, 0));
+
+            // 创建AI敌人生成器
+            this.spawner = new Spawner(
+                this.scene,
+                new THREE.Vector3(0, 0, 0),
+                80,   // 生成半径
+                100,  // 敌人数量
+                10    // 每10个敌人1个领袖
+            );
+            this.spawner.setObstacles(this.obstacles);
+            this.spawner.spawnAll();
+        }
 
         // 开始游戏
         this.isPlaying = true;
         this.isPaused = false;
         this.timeManager.start();
 
-        // 锁定鼠标
-        this.inputManager.requestPointerLock();
-
         // 显示游戏UI
         this.uiManager.showGameUI();
 
-        // 默认开启瞄准镜
-        this.player.isScoped = true;
-        this.uiManager.showScope();
+        // 狙击手模式设置
+        if (!isMultiplayer || this.playerRole === 'sniper') {
+            // 锁定鼠标
+            this.inputManager.requestPointerLock();
 
-        // 添加点击提示事件监听
-        const clickPrompt = document.getElementById('clickPrompt');
-        const hidePrompt = () => {
-            clickPrompt.style.display = 'none';
-            document.removeEventListener('click', hidePrompt);
-        };
-        clickPrompt.addEventListener('click', hidePrompt);
-        document.addEventListener('click', hidePrompt, { once: true });
+            // 默认开启瞄准镜
+            this.player.isScoped = true;
+            this.uiManager.showScope();
+
+            // 添加点击提示事件监听
+            const clickPrompt = document.getElementById('clickPrompt');
+            const hidePrompt = () => {
+                clickPrompt.style.display = 'none';
+                document.removeEventListener('click', hidePrompt);
+            };
+            clickPrompt.addEventListener('click', hidePrompt);
+            document.addEventListener('click', hidePrompt, { once: true });
+        }
 
         // 开始渲染循环
         this.animate();
 
-        console.log('Game started! 提示：右键或Shift切换瞄准镜，左键或空格射击');
+        console.log('Game started!');
+    }
+
+    /**
+     * 设置网络回调
+     */
+    setupNetworkCallbacks() {
+        if (!this.networkManager) return;
+
+        // 初始化已存在的玩家（游戏开始时）
+        if (this.playerRole === 'sniper' && this.networkManager.currentPlayers) {
+            // 获取所有已连接的敌人玩家并创建它们
+            this.networkManager.currentPlayers.forEach(player => {
+                if (player.role === 'enemy' && player.id !== this.networkManager.playerId) {
+                    const spawnPos = this.getRandomSpawnPosition();
+                    const playerEnemy = new PlayerEnemy(
+                        this.scene,
+                        spawnPos,
+                        player.id,
+                        player.name,
+                        false  // 远程玩家
+                    );
+                    this.playerEnemies.set(player.id, playerEnemy);
+                    console.log('Spawned existing enemy player:', player.name);
+                }
+            });
+        }
+
+        // 玩家加入
+        this.networkManager.onPlayerJoined = (data) => {
+            console.log('Player joined:', data);
+            // 在狙击手视角中显示新加入的敌人玩家
+            if (this.playerRole === 'sniper') {
+                data.players.forEach(player => {
+                    if (player.role === 'enemy' && !this.playerEnemies.has(player.id)) {
+                        const spawnPos = this.getRandomSpawnPosition();
+                        const playerEnemy = new PlayerEnemy(
+                            this.scene,
+                            spawnPos,
+                            player.id,
+                            player.name,
+                            false  // 远程玩家
+                        );
+                        this.playerEnemies.set(player.id, playerEnemy);
+                    }
+                });
+            }
+        };
+
+        // 玩家移动
+        this.networkManager.onPlayerMoved = (data) => {
+            const { playerId, position, rotation } = data;
+
+            // 更新远程玩家位置
+            if (playerId !== this.networkManager.playerId && this.playerEnemies.has(playerId)) {
+                const playerEnemy = this.playerEnemies.get(playerId);
+                playerEnemy.updateRemote(position, rotation);
+            }
+        };
+
+        // 玩家射击
+        this.networkManager.onPlayerShot = (data) => {
+            console.log('Player shot:', data);
+            // TODO: 显示射击效果
+        };
+
+        // 敌人被击中
+        this.networkManager.onEnemyHit = (data) => {
+            const { enemyId, remainingLives, score } = data;
+            console.log('Enemy hit:', data);
+
+            if (this.playerEnemies.has(enemyId)) {
+                const playerEnemy = this.playerEnemies.get(enemyId);
+                playerEnemy.onHit();
+                playerEnemy.lives = remainingLives;
+
+                // 更新分数（狙击手视角）
+                if (this.playerRole === 'sniper') {
+                    this.scoreManager.setScore(score);
+                    this.uiManager.updateScore(score);
+                }
+
+                // 敌人死亡
+                if (remainingLives <= 0) {
+                    playerEnemy.onDeath();
+                    setTimeout(() => {
+                        this.playerEnemies.delete(enemyId);
+                    }, 2000);
+                }
+            }
+        };
+
+        // 游戏结束
+        this.networkManager.onGameOver = (data) => {
+            console.log('Game over:', data);
+            this.gameOver(data.reason);
+        };
+
+        // 房间关闭
+        this.networkManager.onRoomClosed = () => {
+            console.log('Room closed');
+            this.returnToMainMenu();
+        };
+    }
+
+    /**
+     * 获取随机生成位置
+     */
+    getRandomSpawnPosition() {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 30 + Math.random() * 40;
+        return new THREE.Vector3(
+            Math.cos(angle) * radius,
+            0,
+            Math.sin(angle) * radius
+        );
+    }
+
+    /**
+     * 创建第三人称相机
+     */
+    createThirdPersonCamera() {
+        if (!this.localPlayerEnemy) return;
+
+        // 创建相机
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+
+        // 设置相机位置（跟随本地玩家）
+        const offset = new THREE.Vector3(0, 10, 15);
+        camera.position.copy(this.localPlayerEnemy.position).add(offset);
+        camera.lookAt(this.localPlayerEnemy.position);
+
+        this.thirdPersonCamera = camera;
     }
 
     /**
@@ -362,6 +583,13 @@ export class Game {
             bullet.destroy();
         }
         this.bullets = [];
+
+        // 清除玩家敌人
+        for (const [id, playerEnemy] of this.playerEnemies) {
+            playerEnemy.destroy();
+        }
+        this.playerEnemies.clear();
+        this.localPlayerEnemy = null;
 
         // 重置管理器
         this.scoreManager.resetScore();
@@ -426,12 +654,46 @@ export class Game {
         if (shootData) {
             // 使用射线检测立即击中
             const ray = this.player.getShootRay();
-            const hitEnemy = this.spawner.checkShootHit(ray);
+            let hitEnemyId = null;
 
-            if (hitEnemy) {
-                hitEnemy.onHit();
-                const newScore = this.scoreManager.addScore(1);
-                this.uiManager.updateScore(newScore);
+            if (this.isMultiplayer) {
+                // 联机模式：检测玩家敌人
+                let closestDistance = Infinity;
+                let closestEnemy = null;
+
+                for (const [id, playerEnemy] of this.playerEnemies) {
+                    if (!playerEnemy.isAlive) continue;
+
+                    const intersect = ray.intersectObject(playerEnemy.mesh, true);
+                    if (intersect.length > 0 && intersect[0].distance < closestDistance) {
+                        closestDistance = intersect[0].distance;
+                        closestEnemy = playerEnemy;
+                        hitEnemyId = id;
+                    }
+                }
+
+                // 发送射击事件到服务器
+                if (this.networkManager) {
+                    this.networkManager.sendShoot(
+                        shootData.position,
+                        shootData.direction,
+                        hitEnemyId
+                    );
+                }
+
+                // 本地立即显示击中效果（服务器会发送确认）
+                if (closestEnemy) {
+                    closestEnemy.onHit();
+                }
+            } else {
+                // 单人模式：检测AI敌人
+                const hitEnemy = this.spawner.checkShootHit(ray);
+
+                if (hitEnemy) {
+                    hitEnemy.onHit();
+                    const newScore = this.scoreManager.addScore(1);
+                    this.uiManager.updateScore(newScore);
+                }
             }
 
             // 创建子弹视觉效果
@@ -518,6 +780,34 @@ export class Game {
             );
         }
 
+        // 更新玩家敌人（联机模式）
+        if (this.isMultiplayer) {
+            // 更新本地玩家敌人
+            if (this.localPlayerEnemy && this.playerRole === 'enemy') {
+                const moveData = this.localPlayerEnemy.updateLocal(deltaTime);
+
+                // 发送位置更新到服务器（每帧发送）
+                if (moveData && this.networkManager) {
+                    this.networkManager.sendPlayerMove(moveData.position, moveData.rotation);
+                }
+
+                // 更新第三人称相机
+                if (this.thirdPersonCamera) {
+                    const offset = new THREE.Vector3(0, 10, 15);
+                    const targetPos = this.localPlayerEnemy.position.clone().add(offset);
+                    this.thirdPersonCamera.position.lerp(targetPos, 0.1);
+                    this.thirdPersonCamera.lookAt(this.localPlayerEnemy.position);
+                }
+            }
+
+            // 更新所有玩家敌人
+            for (const [id, playerEnemy] of this.playerEnemies) {
+                if (id !== this.networkManager?.playerId) {
+                    playerEnemy.update(deltaTime);
+                }
+            }
+        }
+
         // 更新子弹
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             const bullet = this.bullets[i];
@@ -538,8 +828,18 @@ export class Game {
      * 渲染
      */
     render() {
-        if (this.player && this.renderer) {
-            this.renderer.render(this.scene, this.player.camera);
+        if (!this.renderer) return;
+
+        // 选择正确的相机
+        let camera = null;
+        if (this.isMultiplayer && this.playerRole === 'enemy' && this.thirdPersonCamera) {
+            camera = this.thirdPersonCamera;
+        } else if (this.player) {
+            camera = this.player.camera;
+        }
+
+        if (camera) {
+            this.renderer.render(this.scene, camera);
         }
     }
 
@@ -568,6 +868,12 @@ export class Game {
         if (this.player) {
             this.player.onWindowResize();
         }
+
+        if (this.thirdPersonCamera) {
+            this.thirdPersonCamera.aspect = window.innerWidth / window.innerHeight;
+            this.thirdPersonCamera.updateProjectionMatrix();
+        }
+
         if (this.renderer) {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         }

@@ -28,6 +28,13 @@ export class ScoreManager {
     }
 
     /**
+     * 设置分数
+     */
+    setScore(score) {
+        this.score = score;
+    }
+
+    /**
      * 获取最高分
      */
     getHighScore() {

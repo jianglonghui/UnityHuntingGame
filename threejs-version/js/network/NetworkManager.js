@@ -6,6 +6,7 @@ export class NetworkManager {
         this.roomId = null;
         this.playerId = null;
         this.playerRole = null; // 'sniper' or 'enemy'
+        this.currentPlayers = [];  // 当前房间的玩家列表
         this.serverUrl = 'http://localhost:3000';
 
         // 回调函数
@@ -67,6 +68,7 @@ export class NetworkManager {
             console.log('Room created:', data);
             this.roomId = data.roomId;
             this.playerRole = data.role;
+            this.currentPlayers = data.players || [];
             if (this.onRoomCreated) this.onRoomCreated(data);
         });
 
@@ -74,16 +76,19 @@ export class NetworkManager {
             console.log('Room joined:', data);
             this.roomId = data.roomId;
             this.playerRole = data.role;
+            this.currentPlayers = data.players || [];
             if (this.onRoomJoined) this.onRoomJoined(data);
         });
 
         this.socket.on('playerJoined', (data) => {
             console.log('Player joined:', data);
+            this.currentPlayers = data.players || [];
             if (this.onPlayerJoined) this.onPlayerJoined(data);
         });
 
         this.socket.on('playerLeft', (data) => {
             console.log('Player left:', data);
+            this.currentPlayers = data.players || [];
             if (this.onPlayerLeft) this.onPlayerLeft(data);
         });
 
