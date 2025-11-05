@@ -1,6 +1,6 @@
 // 玩家控制的敌人类
 export class PlayerEnemy {
-    constructor(scene, position, playerId, playerName, isLocal = false) {
+    constructor(scene, position, playerId, playerName, isLocal = false, obstacles = []) {
         this.scene = scene;
         this.position = position.clone();
         this.playerId = playerId;
@@ -8,6 +8,7 @@ export class PlayerEnemy {
         this.isLocal = isLocal;  // 是否是本地玩家
         this.isAlive = true;
         this.lives = 3;
+        this.obstacles = obstacles;  // 场景中的障碍物
 
         // 运动属性
         this.velocity = new THREE.Vector3(0, 0, 0);
@@ -174,8 +175,17 @@ export class PlayerEnemy {
 
         this.velocity.y = this.jumpVelocity;
 
+        // 保存旧位置用于碰撞检测
+        const oldPosition = this.position.clone();
+
         // 应用移动
         this.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+        // 障碍物碰撞检测
+        if (this.checkCollision()) {
+            // 如果碰撞，恢复到旧位置
+            this.position.copy(oldPosition);
+        }
 
         // 地面检测
         if (this.position.y <= this.groundLevel) {
@@ -312,6 +322,37 @@ export class PlayerEnemy {
             this.bodyMesh.material.color.setHex(originalColor);
             this.headMesh.material.color.setHex(originalColor);
         }, 200);
+    }
+
+    /**
+     * 检查与障碍物的碰撞
+     */
+    checkCollision() {
+        if (!this.obstacles || this.obstacles.length === 0) return false;
+
+        const playerRadius = 0.6;  // 玩家的碰撞半径
+
+        for (const obstacle of this.obstacles) {
+            const dx = this.position.x - obstacle.position.x;
+            const dz = this.position.z - obstacle.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            // 根据障碍物类型设置不同的碰撞半径
+            let obstacleRadius = 1.0;  // 默认半径
+
+            // 检查是否是树（有树干子网格）
+            if (obstacle.children && obstacle.children.length > 0) {
+                // 树的碰撞半径较小（只有树干）
+                obstacleRadius = 0.5;
+            }
+
+            // 如果距离小于两个半径之和，发生碰撞
+            if (distance < playerRadius + obstacleRadius) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

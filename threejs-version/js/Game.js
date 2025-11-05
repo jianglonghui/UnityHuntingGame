@@ -274,8 +274,9 @@ export class Game {
                 this.cameraRotationY -= x * this.cameraSensitivity;
                 this.cameraRotationX -= y * this.cameraSensitivity;
 
-                // 限制垂直旋转角度
-                this.cameraRotationX = Math.max(-Math.PI / 3, Math.min(Math.PI / 2, this.cameraRotationX));
+                // 限制垂直旋转角度（不能看向地面以下）
+                // 最小值 -0.1 （略微向下）到最大值 Math.PI / 2（向上90度）
+                this.cameraRotationX = Math.max(-0.1, Math.min(Math.PI / 2, this.cameraRotationX));
 
                 console.log('Camera rotation:', this.cameraRotationY.toFixed(2), this.cameraRotationX.toFixed(2));
             } else if (this.player) {
@@ -411,7 +412,8 @@ export class Game {
                     spawnPos,
                     networkManager.playerId,
                     '本地玩家',
-                    true  // isLocal
+                    true,  // isLocal
+                    this.obstacles  // 传递障碍物
                 );
                 this.playerEnemies.set(networkManager.playerId, this.localPlayerEnemy);
 
@@ -513,7 +515,8 @@ export class Game {
                     spawnPos,
                     player.id,
                     player.name,
-                    false  // 远程玩家
+                    false,  // 远程玩家
+                    this.obstacles  // 传递障碍物
                 );
                 this.playerEnemies.set(player.id, playerEnemy);
                 console.log(`Spawned existing ${player.role} player:`, player.name);
@@ -540,7 +543,8 @@ export class Game {
                         spawnPos,
                         player.id,
                         player.name,
-                        false  // 远程玩家
+                        false,  // 远程玩家
+                        this.obstacles  // 传递障碍物
                     );
                     this.playerEnemies.set(player.id, playerEnemy);
                     console.log(`Created ${player.role} player:`, player.name);
