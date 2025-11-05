@@ -144,18 +144,25 @@ class Room {
 
     hitEnemy(enemyId) {
         const lives = this.enemyLives.get(enemyId) || 0;
+        console.log(`[hitEnemy] Enemy ${enemyId} hit, lives before: ${lives}`);
+
         if (lives > 0) {
             this.enemyLives.set(enemyId, lives - 1);
             this.sniperScore += 1;
+
+            console.log(`[hitEnemy] Lives after: ${lives - 1}, Total score: ${this.sniperScore}`);
 
             if (lives - 1 <= 0) {
                 const player = this.players.get(enemyId);
                 if (player) {
                     player.isAlive = false;
                 }
+                console.log(`[hitEnemy] Enemy ${enemyId} died`);
             }
             return true;
         }
+
+        console.log(`[hitEnemy] Enemy ${enemyId} already dead, no score added`);
         return false;
     }
 
@@ -337,6 +344,8 @@ io.on('connection', (socket) => {
         const player = room.players.get(socket.id);
         if (!player || player.role !== PLAYER_ROLE.SNIPER) return;
 
+        console.log(`[Server] Sniper ${socket.id} shot, hitEnemyId: ${data.hitEnemyId || 'none'}`);
+
         // 广播射击事件
         io.to(room.id).emit('playerShot', {
             playerId: socket.id,
@@ -349,12 +358,15 @@ io.on('connection', (socket) => {
             const hit = room.hitEnemy(data.hitEnemyId);
             if (hit) {
                 const lives = room.enemyLives.get(data.hitEnemyId);
+                console.log(`[Server] Broadcasting enemyHit event, lives: ${lives}, score: ${room.sniperScore}`);
                 io.to(room.id).emit('enemyHit', {
                     enemyId: data.hitEnemyId,
                     remainingLives: lives,
                     score: room.sniperScore
                 });
             }
+        } else {
+            console.log(`[Server] No hit registered for this shot`);
         }
 
         // 检查游戏是否结束

@@ -275,8 +275,10 @@ export class PlayerEnemy {
                 direction.applyQuaternion(quaternion);
 
                 const laserLength = 100;
+
+                // 狙击手的激光从相机位置发出（即 position），不需要加高度
+                // 因为狙击手的 camera.position = player.position
                 const startPoint = this.position.clone();
-                startPoint.y += 1.5; // 从头部位置发出
 
                 const endPoint = startPoint.clone().add(direction.multiplyScalar(laserLength));
 

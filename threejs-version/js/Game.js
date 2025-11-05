@@ -790,6 +790,12 @@ export class Game {
 
                 // 发送射击事件到服务器
                 if (this.networkManager) {
+                    if (hitEnemyId) {
+                        console.log(`[Shoot] Hit enemy ${hitEnemyId} at distance ${closestDistance.toFixed(2)}`);
+                    } else {
+                        console.log(`[Shoot] Miss - no enemy hit`);
+                    }
+
                     this.networkManager.sendShoot(
                         shootData.position,
                         shootData.direction,
