@@ -363,6 +363,11 @@ io.on('connection', (socket) => {
     });
 
     // 断开连接
+    // Ping/Pong 用于延迟测量
+    socket.on('ping', () => {
+        socket.emit('pong');
+    });
+
     socket.on('disconnect', () => {
         console.log(`Player disconnected: ${socket.id}`);
 

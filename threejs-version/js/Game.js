@@ -32,6 +32,7 @@ export class Game {
         this.playerEnemies = new Map();  // 存储玩家控制的敌人
         this.localPlayerEnemy = null;    // 本地玩家控制的敌人
         this.playerRole = null;          // 'sniper' 或 'enemy'
+        this.pingInterval = null;        // Ping测量定时器
 
         // 敌人视角控制
         this.cameraRotationY = 0;        // 水平旋转
@@ -398,6 +399,10 @@ export class Game {
             this.playerRole = networkManager.playerRole;
             this.setupNetworkCallbacks();
 
+            // 显示 ping 信息并开始测量延迟
+            this.uiManager.showPing();
+            this.startPingMeasurement();
+
             if (this.playerRole === 'sniper') {
                 // 狙击手：创建第一人称视角
                 this.player = new Player(this.scene, new THREE.Vector3(0, 10, 0));
@@ -502,6 +507,11 @@ export class Game {
      */
     setupNetworkCallbacks() {
         if (!this.networkManager) return;
+
+        // Ping 更新回调
+        this.networkManager.onPingUpdate = (ping) => {
+            this.uiManager.updatePing(ping);
+        };
 
         // 初始化已存在的玩家（游戏开始时）
         if (this.networkManager.currentPlayers) {
@@ -887,6 +897,10 @@ export class Game {
             this.networkManager.leaveRoom();
             this.isMultiplayer = false;
             this.playerRole = null;
+
+            // 停止 ping 测量并隐藏 ping 显示
+            this.stopPingMeasurement();
+            this.uiManager.hidePing();
         }
 
         // 隐藏生命值UI
@@ -1031,6 +1045,33 @@ export class Game {
 
         // 始终渲染场景
         this.render();
+    }
+
+    /**
+     * 开始 Ping 测量（联机模式）
+     */
+    startPingMeasurement() {
+        if (!this.isMultiplayer || !this.networkManager) return;
+
+        // 立即测量一次
+        this.networkManager.measurePing();
+
+        // 每2秒测量一次延迟
+        this.pingInterval = setInterval(() => {
+            if (this.networkManager && this.networkManager.connected) {
+                this.networkManager.measurePing();
+            }
+        }, 2000);
+    }
+
+    /**
+     * 停止 Ping 测量
+     */
+    stopPingMeasurement() {
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+            this.pingInterval = null;
+        }
     }
 
     /**

@@ -13,6 +13,11 @@ export class NetworkManager {
         // 使用配置文件中的服务器地址，支持自动检测
         this.serverUrl = ClientConfig.autoDetect();
 
+        // Ping 相关
+        this.pingStartTime = 0;
+        this.currentPing = 0;
+        this.onPingUpdate = null;  // Ping更新回调
+
         // 回调函数
         this.onRoomCreated = null;
         this.onRoomJoined = null;
@@ -179,6 +184,15 @@ export class NetworkManager {
             console.error('Server error:', data);
             if (this.onError) this.onError(data);
         });
+
+        // 监听 pong 事件用于延迟测量
+        this.socket.on('pong', () => {
+            const ping = Date.now() - this.pingStartTime;
+            this.currentPing = ping;
+            if (this.onPingUpdate) {
+                this.onPingUpdate(ping);
+            }
+        });
     }
 
     /**
@@ -273,5 +287,21 @@ export class NetworkManager {
      */
     isEnemy() {
         return this.playerRole === 'enemy';
+    }
+
+    /**
+     * 测量延迟
+     */
+    measurePing() {
+        if (!this.connected || !this.socket) return;
+        this.pingStartTime = Date.now();
+        this.socket.emit('ping');
+    }
+
+    /**
+     * 获取当前 ping 值
+     */
+    getCurrentPing() {
+        return this.currentPing;
     }
 }

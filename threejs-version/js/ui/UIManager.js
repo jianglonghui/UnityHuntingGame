@@ -16,6 +16,11 @@ export class UIManager {
         this.healthText = document.getElementById('health');
         this.healthContainer = document.getElementById('healthContainer');
 
+        // 右上角信息面板元素
+        this.versionText = document.getElementById('version');
+        this.pingText = document.getElementById('ping');
+        this.pingContainer = document.getElementById('pingContainer');
+
         // 游戏结束元素
         this.finalScoreText = document.getElementById('finalScore');
         this.finalHighScoreText = document.getElementById('finalHighScore');
@@ -269,6 +274,42 @@ export class UIManager {
             this.showScope();
         } else {
             this.hideScope();
+        }
+    }
+
+    /**
+     * 更新延迟显示
+     */
+    updatePing(ping) {
+        if (this.pingText) {
+            this.pingText.textContent = ping;
+
+            // 根据延迟改变颜色
+            if (ping < 50) {
+                this.pingText.style.color = '#00ff00';  // 绿色 - 良好
+            } else if (ping < 100) {
+                this.pingText.style.color = '#ffaa00';  // 橙色 - 一般
+            } else {
+                this.pingText.style.color = '#ff0000';  // 红色 - 较差
+            }
+        }
+    }
+
+    /**
+     * 显示延迟容器（联机模式）
+     */
+    showPing() {
+        if (this.pingContainer) {
+            this.pingContainer.style.display = 'block';
+        }
+    }
+
+    /**
+     * 隐藏延迟容器（单人模式）
+     */
+    hidePing() {
+        if (this.pingContainer) {
+            this.pingContainer.style.display = 'none';
         }
     }
 }
