@@ -50,8 +50,28 @@ export class NetworkManager {
     initializeSocket() {
         console.log('[NetworkManager] Connecting to:', this.serverUrl);
 
+        // 解析服务器URL，提取路径用于socket.io的path选项
+        let socketHost = this.serverUrl;
+        let socketPath = '/socket.io';
+
+        try {
+            const url = new URL(this.serverUrl);
+            // 如果URL包含路径（如 /game），需要添加到socket.io的path中
+            if (url.pathname && url.pathname !== '/') {
+                socketPath = url.pathname + '/socket.io';
+                // 移除路径部分，只保留host
+                socketHost = `${url.protocol}//${url.host}`;
+            }
+        } catch (e) {
+            console.warn('[NetworkManager] Failed to parse server URL:', e);
+        }
+
+        console.log('[NetworkManager] Socket host:', socketHost);
+        console.log('[NetworkManager] Socket path:', socketPath);
+
         // 配置socket.io选项
-        this.socket = io(this.serverUrl, {
+        this.socket = io(socketHost, {
+            path: socketPath,  // 指定socket.io端点路径
             transports: ['websocket', 'polling'], // 使用websocket和轮询
             reconnection: true,
             reconnectionAttempts: 5,
