@@ -31,6 +31,7 @@ export class NetworkManager {
         this.onGameOver = null;
         this.onRoomClosed = null;
         this.onError = null;
+        this.onTimeUpdate = null;  // 时间更新回调
     }
 
     /**
@@ -191,6 +192,13 @@ export class NetworkManager {
             this.currentPing = ping;
             if (this.onPingUpdate) {
                 this.onPingUpdate(ping);
+            }
+        });
+
+        // 监听时间更新（从服务器同步）
+        this.socket.on('timeUpdate', (data) => {
+            if (this.onTimeUpdate) {
+                this.onTimeUpdate(data.remainingTime);
             }
         });
     }

@@ -92,6 +92,7 @@ class Room {
         this.state = ROOM_STATE.PLAYING;
         this.gameStartTime = Date.now();
         this.sniperScore = 0;
+        this.gameUpdateInterval = null;  // 游戏更新定时器
 
         // 重置所有玩家状态
         for (const [socketId, player] of this.players) {
@@ -99,6 +100,28 @@ class Room {
             if (player.role === PLAYER_ROLE.ENEMY) {
                 this.enemyLives.set(socketId, 3);
             }
+        }
+    }
+
+    /**
+     * 获取游戏剩余时间（秒）
+     */
+    getRemainingTime() {
+        if (!this.gameStartTime || this.state !== ROOM_STATE.PLAYING) {
+            return ROOM_CONFIG.GAME_DURATION;
+        }
+        const elapsed = (Date.now() - this.gameStartTime) / 1000;
+        const remaining = Math.max(0, ROOM_CONFIG.GAME_DURATION - elapsed);
+        return Math.ceil(remaining);  // 向上取整
+    }
+
+    /**
+     * 清理游戏更新定时器
+     */
+    cleanup() {
+        if (this.gameUpdateInterval) {
+            clearInterval(this.gameUpdateInterval);
+            this.gameUpdateInterval = null;
         }
     }
 
@@ -264,6 +287,24 @@ io.on('connection', (socket) => {
             duration: ROOM_CONFIG.GAME_DURATION
         });
 
+        // 启动游戏时间更新广播（每500ms广播一次剩余时间）
+        room.gameUpdateInterval = setInterval(() => {
+            const remainingTime = room.getRemainingTime();
+            io.to(room.id).emit('timeUpdate', { remainingTime });
+
+            // 检查游戏是否结束
+            if (room.checkGameOver()) {
+                clearInterval(room.gameUpdateInterval);
+                room.gameUpdateInterval = null;
+
+                io.to(room.id).emit('gameOver', {
+                    sniperScore: room.sniperScore,
+                    reason: 'timeUp'
+                });
+                console.log(`Game over in room ${room.id}, Sniper score: ${room.sniperScore}`);
+            }
+        }, 500);
+
         console.log(`Game started in room ${room.id}`);
     });
 
@@ -354,6 +395,7 @@ io.on('connection', (socket) => {
 
         // 如果房主离开，删除房间
         if (socket.id === room.hostId) {
+            room.cleanup();  // 清理定时器
             io.to(room.id).emit('roomClosed');
             rooms.delete(room.id);
             console.log(`Room ${room.id} closed`);
@@ -381,6 +423,7 @@ io.on('connection', (socket) => {
 
             // 如果房主断开，删除房间
             if (socket.id === room.hostId) {
+                room.cleanup();  // 清理定时器
                 io.to(room.id).emit('roomClosed');
                 rooms.delete(room.id);
             }

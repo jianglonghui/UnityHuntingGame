@@ -513,6 +513,11 @@ export class Game {
             this.uiManager.updatePing(ping);
         };
 
+        // 时间更新回调（从服务器同步）
+        this.networkManager.onTimeUpdate = (remainingTime) => {
+            this.uiManager.updateTime(remainingTime);
+        };
+
         // 初始化已存在的玩家（游戏开始时）
         if (this.networkManager.currentPlayers) {
             this.networkManager.currentPlayers.forEach(player => {
@@ -915,11 +920,17 @@ export class Game {
      * 更新游戏
      */
     update(deltaTime) {
-        if (!this.isPlaying || this.isPaused) return;
+        if (!this.isPlaying) return;
 
-        // 更新时间
-        this.timeManager.update(deltaTime);
-        this.uiManager.updateTime(this.timeManager.getFormattedTime());
+        // 时间更新（即使暂停也继续更新，但仅在单人模式下）
+        // 联机模式下时间由服务器管理
+        if (!this.isMultiplayer) {
+            this.timeManager.update(deltaTime);
+            this.uiManager.updateTime(this.timeManager.getFormattedTime());
+        }
+
+        // 如果游戏暂停，只更新时间，不更新其他游戏逻辑
+        if (this.isPaused) return;
 
         // 更新玩家
         if (this.player) {
