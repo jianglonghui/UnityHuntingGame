@@ -32,12 +32,16 @@ body {
     border-radius: 10px;
     text-align: center;
     z-index: 1000;
-    display: none;
     border: 2px solid #666;
 }
 
-.menu.active {
+.menu.active,
+.menu:not(.hidden) {
     display: block;
+}
+
+.menu:not(.active).hidden {
+    display: none;
 }
 
 .menu h1 {

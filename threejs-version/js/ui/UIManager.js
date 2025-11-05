@@ -100,6 +100,7 @@ export class UIManager {
      */
     showPauseMenu() {
         this.pauseMenu.classList.remove('hidden');
+        this.pauseMenu.classList.add('active');
     }
 
     /**
@@ -107,12 +108,15 @@ export class UIManager {
      */
     hidePauseMenu() {
         this.pauseMenu.classList.add('hidden');
+        this.pauseMenu.classList.remove('active');
     }
 
     /**
      * 显示游戏结束菜单
      */
     showGameOverMenu(score, highScore, isNewHighScore) {
+        console.log('Showing game over menu:', { score, highScore, isNewHighScore });
+
         this.hideAll();
         this.finalScoreText.textContent = score;
         this.finalHighScoreText.textContent = highScore;
@@ -123,7 +127,12 @@ export class UIManager {
             this.newHighScoreText.classList.add('hidden');
         }
 
+        // 确保游戏结束菜单显示
         this.gameOverMenu.classList.remove('hidden');
+        this.gameOverMenu.classList.add('active');
+
+        console.log('Game over menu element:', this.gameOverMenu);
+        console.log('Game over menu classes:', this.gameOverMenu.className);
     }
 
     /**
@@ -133,7 +142,9 @@ export class UIManager {
         this.mainMenu.classList.remove('active');
         this.instructionsMenu.classList.remove('active');
         this.pauseMenu.classList.add('hidden');
+        this.pauseMenu.classList.remove('active');
         this.gameOverMenu.classList.add('hidden');
+        this.gameOverMenu.classList.remove('active');
         this.gameUI.classList.add('hidden');
     }
 

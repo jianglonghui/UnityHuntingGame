@@ -49,8 +49,11 @@ export class TimeManager {
             this.isRunning = false;
 
             // 触发时间结束回调
+            console.log('Time is up! Triggering onTimeUp callback');
             if (this.onTimeUp) {
                 this.onTimeUp();
+            } else {
+                console.error('onTimeUp callback is not set!');
             }
         }
     }
