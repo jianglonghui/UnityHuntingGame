@@ -277,12 +277,14 @@ io.on('connection', (socket) => {
 
         player.position = data.position;
         player.rotation = data.rotation;
+        player.isScoped = data.isScoped || false;  // 保存瞄准镜状态
 
         // 广播给其他玩家
         socket.to(room.id).emit('playerMoved', {
             playerId: socket.id,
             position: data.position,
-            rotation: data.rotation
+            rotation: data.rotation,
+            isScoped: data.isScoped || false  // 广播瞄准镜状态
         });
     });
 

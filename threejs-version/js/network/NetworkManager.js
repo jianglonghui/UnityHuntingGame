@@ -228,9 +228,9 @@ export class NetworkManager {
     /**
      * 发送玩家移动
      */
-    sendPlayerMove(position, rotation) {
+    sendPlayerMove(position, rotation, isScoped = false) {
         if (!this.connected || !this.roomId) return;
-        this.socket.emit('playerMove', { position, rotation });
+        this.socket.emit('playerMove', { position, rotation, isScoped });
     }
 
     /**

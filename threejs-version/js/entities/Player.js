@@ -30,8 +30,37 @@ export class Player {
         this.shootCooldown = 1.0;  // 1秒冷却
         this.shootTimer = 0;
 
+        // 激光瞄准线（敌人可见）
+        this.laserSight = null;
+        this.laserSightEnabled = true;
+        this.createLaserSight();
+
         // 音频
         this.setupAudio();
+    }
+
+    /**
+     * 创建激光瞄准线
+     */
+    createLaserSight() {
+        // 创建激光线材质（红色半透明）
+        const laserMaterial = new THREE.LineBasicMaterial({
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.6,
+            linewidth: 2
+        });
+
+        // 创建线的几何体（从相机位置到很远的点）
+        const points = [
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, -100)
+        ];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+        this.laserSight = new THREE.Line(geometry, laserMaterial);
+        this.laserSight.visible = false; // 默认隐藏
+        this.scene.add(this.laserSight);
     }
 
     /**
@@ -75,6 +104,32 @@ export class Player {
         const targetFOV = this.baseFOV / this.zoomLevel;
         this.camera.fov += (targetFOV - this.camera.fov) * 0.1;
         this.camera.updateProjectionMatrix();
+
+        // 更新激光瞄准线
+        if (this.laserSight && this.laserSightEnabled) {
+            // 只在瞄准镜激活时显示激光线
+            this.laserSight.visible = this.isScoped;
+
+            if (this.isScoped) {
+                // 获取相机朝向
+                const direction = this.getForwardVector();
+                const laserLength = 100;
+
+                // 更新激光线的起点和终点
+                const startPoint = this.camera.position.clone();
+                const endPoint = startPoint.clone().add(direction.multiplyScalar(laserLength));
+
+                const positions = this.laserSight.geometry.attributes.position.array;
+                positions[0] = startPoint.x;
+                positions[1] = startPoint.y;
+                positions[2] = startPoint.z;
+                positions[3] = endPoint.x;
+                positions[4] = endPoint.y;
+                positions[5] = endPoint.z;
+
+                this.laserSight.geometry.attributes.position.needsUpdate = true;
+            }
+        }
     }
 
     /**

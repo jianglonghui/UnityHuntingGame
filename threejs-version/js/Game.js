@@ -550,12 +550,12 @@ export class Game {
 
         // 玩家移动
         this.networkManager.onPlayerMoved = (data) => {
-            const { playerId, position, rotation } = data;
+            const { playerId, position, rotation, isScoped } = data;
 
-            // 更新远程玩家位置
+            // 更新远程玩家位置和瞄准镜状态
             if (playerId !== this.networkManager.playerId && this.playerEnemies.has(playerId)) {
                 const playerEnemy = this.playerEnemies.get(playerId);
-                playerEnemy.updateRemote(position, rotation);
+                playerEnemy.updateRemote(position, rotation, isScoped);
             }
         };
 
@@ -568,18 +568,29 @@ export class Game {
         // 敌人被击中
         this.networkManager.onEnemyHit = (data) => {
             const { enemyId, remainingLives, score } = data;
-            console.log('Enemy hit:', data);
+            console.log('Enemy hit:', enemyId, 'remaining lives:', remainingLives, 'local player:', this.networkManager.playerId);
 
-            if (this.playerEnemies.has(enemyId)) {
+            // 检查是否是本地玩家被击中
+            if (enemyId === this.networkManager.playerId && this.localPlayerEnemy) {
+                console.log('Local player hit!');
+                this.localPlayerEnemy.onHit();
+                this.localPlayerEnemy.lives = remainingLives;
+
+                // 显示屏幕闪烁效果
+                this.showHitEffect();
+
+                // 敌人死亡
+                if (remainingLives <= 0) {
+                    console.log('Local player died!');
+                    this.localPlayerEnemy.onDeath();
+                    // 游戏结束将由服务器的gameOver事件触发
+                }
+            }
+            // 检查是否是其他玩家被击中
+            else if (this.playerEnemies.has(enemyId)) {
                 const playerEnemy = this.playerEnemies.get(enemyId);
                 playerEnemy.onHit();
                 playerEnemy.lives = remainingLives;
-
-                // 更新分数（狙击手视角）
-                if (this.playerRole === 'sniper') {
-                    this.scoreManager.setScore(score);
-                    this.uiManager.updateScore(score);
-                }
 
                 // 敌人死亡
                 if (remainingLives <= 0) {
@@ -588,6 +599,12 @@ export class Game {
                         this.playerEnemies.delete(enemyId);
                     }, 2000);
                 }
+            }
+
+            // 更新分数（狙击手视角）
+            if (this.playerRole === 'sniper') {
+                this.scoreManager.setScore(score);
+                this.uiManager.updateScore(score);
             }
         };
 
@@ -818,6 +835,37 @@ export class Game {
     }
 
     /**
+     * 显示击中效果（屏幕闪红）
+     */
+    showHitEffect() {
+        // 创建或获取击中效果覆盖层
+        let hitOverlay = document.getElementById('hit-overlay');
+        if (!hitOverlay) {
+            hitOverlay = document.createElement('div');
+            hitOverlay.id = 'hit-overlay';
+            hitOverlay.style.position = 'fixed';
+            hitOverlay.style.top = '0';
+            hitOverlay.style.left = '0';
+            hitOverlay.style.width = '100%';
+            hitOverlay.style.height = '100%';
+            hitOverlay.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+            hitOverlay.style.pointerEvents = 'none';
+            hitOverlay.style.zIndex = '9999';
+            hitOverlay.style.opacity = '0';
+            hitOverlay.style.transition = 'opacity 0.2s';
+            document.body.appendChild(hitOverlay);
+        }
+
+        // 显示效果
+        hitOverlay.style.opacity = '1';
+
+        // 0.3秒后淡出
+        setTimeout(() => {
+            hitOverlay.style.opacity = '0';
+        }, 300);
+    }
+
+    /**
      * 返回主菜单
      */
     returnToMainMenu() {
@@ -851,7 +899,7 @@ export class Game {
         if (this.player) {
             this.player.update(deltaTime);
 
-            // 联机模式下狙击手也需要同步位置
+            // 联机模式下狙击手也需要同步位置和瞄准镜状态
             if (this.isMultiplayer && this.playerRole === 'sniper' && this.networkManager) {
                 this.networkManager.sendPlayerMove(
                     {
@@ -863,7 +911,8 @@ export class Game {
                         x: this.player.rotation.x,
                         y: this.player.rotation.y,
                         z: 0
-                    }
+                    },
+                    this.player.isScoped  // 发送瞄准镜状态
                 );
             }
         }

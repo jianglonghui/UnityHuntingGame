@@ -36,8 +36,35 @@ export class PlayerEnemy {
         // 创建3D模型
         this.createModel();
 
+        // 创建激光瞄准线（用于显示狙击手的瞄准方向）
+        this.laserSight = null;
+        this.isScoped = false;  // 是否开启瞄准镜
+        this.createLaserSight();
+
         // 添加到场景
         this.scene.add(this.mesh);
+    }
+
+    /**
+     * 创建激光瞄准线（显示狙击手瞄准方向）
+     */
+    createLaserSight() {
+        const laserMaterial = new THREE.LineBasicMaterial({
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.6,
+            linewidth: 2
+        });
+
+        const points = [
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, -100)
+        ];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+        this.laserSight = new THREE.Line(geometry, laserMaterial);
+        this.laserSight.visible = false;
+        this.scene.add(this.laserSight);
     }
 
     /**
@@ -203,7 +230,7 @@ export class PlayerEnemy {
     /**
      * 更新远程玩家（从网络同步）
      */
-    updateRemote(position, rotation) {
+    updateRemote(position, rotation, isScoped = false) {
         if (this.isLocal) return;
 
         // 目标位置
@@ -213,9 +240,42 @@ export class PlayerEnemy {
         this.position.lerp(targetPos, 0.3);
         this.rotation = rotation.y;
 
+        // 更新瞄准镜状态
+        this.isScoped = isScoped;
+
         // 更新3D模型
         this.mesh.position.copy(this.position);
         this.mesh.rotation.y = this.rotation;
+
+        // 更新激光瞄准线（只有狙击手才有）
+        if (this.laserSight) {
+            this.laserSight.visible = this.isScoped;
+
+            if (this.isScoped && rotation) {
+                // 根据旋转角度计算激光方向
+                const direction = new THREE.Vector3(
+                    Math.sin(rotation.y) * Math.cos(rotation.x || 0),
+                    -Math.sin(rotation.x || 0),
+                    Math.cos(rotation.y) * Math.cos(rotation.x || 0)
+                );
+
+                const laserLength = 100;
+                const startPoint = this.position.clone();
+                startPoint.y += 1.5; // 从头部位置发出
+
+                const endPoint = startPoint.clone().add(direction.multiplyScalar(laserLength));
+
+                const positions = this.laserSight.geometry.attributes.position.array;
+                positions[0] = startPoint.x;
+                positions[1] = startPoint.y;
+                positions[2] = startPoint.z;
+                positions[3] = endPoint.x;
+                positions[4] = endPoint.y;
+                positions[5] = endPoint.z;
+
+                this.laserSight.geometry.attributes.position.needsUpdate = true;
+            }
+        }
     }
 
     /**
