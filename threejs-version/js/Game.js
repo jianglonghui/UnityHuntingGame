@@ -140,8 +140,17 @@ export class Game {
         hill.castShadow = true;
         this.scene.add(hill);
 
-        // 创建一些树木和岩石作为障碍物
-        this.createObstacles();
+        // 障碍物会在 startGame() 中创建（需要随机种子）
+    }
+
+    /**
+     * 清理障碍物
+     */
+    clearObstacles() {
+        for (const obstacle of this.obstacles) {
+            this.scene.remove(obstacle);
+        }
+        this.obstacles = [];
     }
 
     /**
@@ -401,6 +410,10 @@ export class Game {
 
         // 重置游戏状态
         this.resetGame();
+
+        // 清理旧障碍物并生成新场景
+        this.clearObstacles();
+        this.createObstacles();
 
         // 设置联机模式
         this.isMultiplayer = isMultiplayer;
