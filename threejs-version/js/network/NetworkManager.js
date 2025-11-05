@@ -16,6 +16,7 @@ export class NetworkManager {
         // 回调函数
         this.onRoomCreated = null;
         this.onRoomJoined = null;
+        this.onRoomList = null;
         this.onPlayerJoined = null;
         this.onPlayerLeft = null;
         this.onGameStarted = null;
@@ -84,6 +85,11 @@ export class NetworkManager {
             if (this.onRoomJoined) this.onRoomJoined(data);
         });
 
+        this.socket.on('roomList', (data) => {
+            console.log('Room list received:', data);
+            if (this.onRoomList) this.onRoomList(data);
+        });
+
         this.socket.on('playerJoined', (data) => {
             console.log('Player joined:', data);
             this.currentPlayers = data.players || [];
@@ -130,6 +136,17 @@ export class NetworkManager {
             console.error('Server error:', data);
             if (this.onError) this.onError(data);
         });
+    }
+
+    /**
+     * 获取房间列表
+     */
+    getRooms() {
+        if (!this.connected) {
+            console.error('Not connected to server');
+            return;
+        }
+        this.socket.emit('getRooms');
     }
 
     /**

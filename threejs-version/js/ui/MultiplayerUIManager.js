@@ -108,6 +108,11 @@ export class MultiplayerUIManager {
             }
         };
 
+        this.networkManager.onRoomList = (rooms) => {
+            console.log('Room list:', rooms);
+            this.displayRoomList(rooms);
+        };
+
         this.networkManager.onRoomClosed = () => {
             alert('房主已离开，房间关闭');
             this.showMainMenu();
@@ -165,10 +170,63 @@ export class MultiplayerUIManager {
      */
     refreshRoomList() {
         this.roomListContainer.innerHTML = '<p class="loading-text">正在加载房间...</p>';
-        // TODO: 实现获取房间列表
-        setTimeout(() => {
+        this.networkManager.getRooms();
+    }
+
+    /**
+     * 显示房间列表
+     */
+    displayRoomList(rooms) {
+        this.roomListContainer.innerHTML = '';
+
+        if (!rooms || rooms.length === 0) {
             this.roomListContainer.innerHTML = '<p class="loading-text">暂无可用房间</p>';
-        }, 500);
+            return;
+        }
+
+        // 只显示等待中的房间
+        const availableRooms = rooms.filter(room => room.state === 'waiting');
+
+        if (availableRooms.length === 0) {
+            this.roomListContainer.innerHTML = '<p class="loading-text">暂无可用房间</p>';
+            return;
+        }
+
+        availableRooms.forEach(room => {
+            const roomItem = document.createElement('div');
+            roomItem.className = 'room-item';
+
+            const roomInfo = document.createElement('div');
+            roomInfo.className = 'room-info';
+
+            const roomId = document.createElement('div');
+            roomId.className = 'room-id';
+            roomId.textContent = `房间 ${room.id}`;
+
+            const playerCount = document.createElement('div');
+            playerCount.className = 'player-count';
+            playerCount.textContent = `${room.playerCount}/${room.maxPlayers} 玩家`;
+
+            roomInfo.appendChild(roomId);
+            roomInfo.appendChild(playerCount);
+
+            const joinButton = document.createElement('button');
+            joinButton.className = 'join-button';
+            joinButton.textContent = '加入';
+            joinButton.onclick = () => this.joinRoomById(room.id);
+
+            roomItem.appendChild(roomInfo);
+            roomItem.appendChild(joinButton);
+            this.roomListContainer.appendChild(roomItem);
+        });
+    }
+
+    /**
+     * 通过房间ID加入房间
+     */
+    joinRoomById(roomId) {
+        const playerName = this.playerNameInput.value.trim() || '玩家';
+        this.networkManager.joinRoom(roomId, playerName);
     }
 
     /**
