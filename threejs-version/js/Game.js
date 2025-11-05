@@ -253,6 +253,7 @@ export class Game {
         this.uiManager.onPlayButton = () => {
             // 在多人模式下，"再来一次"应该返回房间等待界面
             if (this.isMultiplayer && this.multiplayerUIManager) {
+                this.uiManager.hideAll(); // 先隐藏游戏结束菜单
                 this.multiplayerUIManager.showLobby();
             } else {
                 // 单人模式：重新开始游戏
