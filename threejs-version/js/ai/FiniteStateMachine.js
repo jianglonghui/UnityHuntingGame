@@ -158,7 +158,7 @@ export class FiniteStateMachine {
             case AIState.ALERT:
                 // 解散群体
                 if (this.leader) {
-                    this.leaveFlc();
+                    this.leaveFlock();
                 }
                 break;
             case AIState.FLOCK:
