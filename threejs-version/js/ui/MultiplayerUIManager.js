@@ -19,6 +19,10 @@ export class MultiplayerUIManager {
         this.playerCountDisplay = document.getElementById('playerCountDisplay');
         this.lobbyPlayerList = document.getElementById('lobbyPlayerList');
         this.startGameButton = document.getElementById('startGameButton');
+        this.readyButton = document.getElementById('readyButton');
+
+        // 准备状态
+        this.isReady = false;
 
         // 回调函数
         this.onSinglePlayer = null;
@@ -55,6 +59,11 @@ export class MultiplayerUIManager {
         // 刷新房间列表
         document.getElementById('refreshRoomsButton').addEventListener('click', () => {
             this.refreshRoomList();
+        });
+
+        // 准备按钮
+        this.readyButton.addEventListener('click', () => {
+            this.toggleReady();
         });
 
         // 开始游戏
@@ -101,8 +110,16 @@ export class MultiplayerUIManager {
             this.updateLobbyPlayerList(data.players);
         };
 
+        this.networkManager.onPlayerReady = (data) => {
+            console.log('Player ready status changed:', data);
+            this.updateLobbyPlayerList(data.players);
+        };
+
         this.networkManager.onGameStarted = (data) => {
             console.log('Game started:', data);
+            // 重置准备状态
+            this.isReady = false;
+            this.updateReadyButton();
             if (this.onMultiplayerGameStart) {
                 this.onMultiplayerGameStart(data);
             }
@@ -241,8 +258,14 @@ export class MultiplayerUIManager {
         this.yourRoleDisplay.textContent = this.getRoleDisplayName(data.role);
         this.updateLobbyPlayerList(data.players);
 
-        // 房主可以开始游戏
-        this.startGameButton.disabled = data.players.length < 2;
+        // 房主显示开始按钮，所有人准备才能开始
+        this.startGameButton.style.display = 'block';
+        this.startGameButton.disabled = true;
+
+        // 房主也需要准备
+        this.readyButton.style.display = 'block';
+        this.isReady = false;
+        this.updateReadyButton();
     }
 
     /**
@@ -257,8 +280,11 @@ export class MultiplayerUIManager {
         this.yourRoleDisplay.textContent = this.getRoleDisplayName(data.role);
         this.updateLobbyPlayerList(data.players);
 
-        // 非房主不能开始游戏
+        // 非房主不能开始游戏，但能准备
         this.startGameButton.style.display = 'none';
+        this.readyButton.style.display = 'block';
+        this.isReady = false;
+        this.updateReadyButton();
     }
 
     /**
@@ -280,14 +306,23 @@ export class MultiplayerUIManager {
             playerRole.className = `player-role ${player.role}`;
             playerRole.textContent = this.getRoleDisplayName(player.role);
 
+            // 显示准备状态
+            const readyStatus = document.createElement('span');
+            readyStatus.className = 'ready-status';
+            readyStatus.textContent = player.isReady ? ' ✓' : ' ○';
+            readyStatus.style.color = player.isReady ? '#00ff00' : '#666';
+
             playerItem.appendChild(playerName);
             playerItem.appendChild(playerRole);
+            playerItem.appendChild(readyStatus);
             this.lobbyPlayerList.appendChild(playerItem);
         });
 
-        // 更新开始按钮状态
+        // 更新开始按钮状态（房主）
         if (this.startGameButton.style.display !== 'none') {
-            this.startGameButton.disabled = players.length < 2;
+            // 至少2人，且所有人都准备好了
+            const allReady = players.length >= 2 && players.every(p => p.isReady);
+            this.startGameButton.disabled = !allReady;
         }
     }
 
@@ -299,10 +334,43 @@ export class MultiplayerUIManager {
     }
 
     /**
+     * 切换准备状态
+     */
+    toggleReady() {
+        this.isReady = !this.isReady;
+        this.updateReadyButton();
+        this.networkManager.setReady(this.isReady);
+    }
+
+    /**
+     * 更新准备按钮显示
+     */
+    updateReadyButton() {
+        if (this.readyButton) {
+            this.readyButton.textContent = this.isReady ? '取消准备' : '准备';
+            this.readyButton.style.backgroundColor = this.isReady ? '#ff6600' : '#666';
+        }
+    }
+
+    /**
+     * 显示房间界面（游戏结束后）
+     */
+    showLobby() {
+        this.hideAll();
+        this.createRoomMenu.classList.remove('hidden');
+        this.createRoomMenu.classList.add('active');
+
+        // 重置准备状态
+        this.isReady = false;
+        this.updateReadyButton();
+    }
+
+    /**
      * 离开房间
      */
     leaveRoom() {
         this.networkManager.leaveRoom();
+        this.isReady = false;
         this.showMultiplayerMenuFromRoomList();
     }
 

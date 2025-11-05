@@ -384,7 +384,7 @@ export class Game {
     /**
      * 开始游戏
      */
-    startGame(isMultiplayer = false, networkManager = null) {
+    startGame(isMultiplayer = false, networkManager = null, multiplayerUIManager = null) {
         console.log('Starting game...', isMultiplayer ? 'Multiplayer Mode' : 'Single Player Mode');
 
         // 重置游戏状态
@@ -393,6 +393,7 @@ export class Game {
         // 设置联机模式
         this.isMultiplayer = isMultiplayer;
         this.networkManager = networkManager;
+        this.multiplayerUIManager = multiplayerUIManager;
 
         if (isMultiplayer && networkManager) {
             // 联机模式
@@ -850,17 +851,20 @@ export class Game {
             }, 500);
         }
 
-        // 保存最高分
-        const isNewHighScore = this.scoreManager.saveHighScore();
-
         // 延迟显示菜单，给玩家一点反应时间
         setTimeout(() => {
-            // 显示游戏结束菜单
-            this.uiManager.showGameOverMenu(
-                this.scoreManager.getScore(),
-                this.scoreManager.getHighScore(),
-                isNewHighScore
-            );
+            if (this.isMultiplayer && this.multiplayerUIManager) {
+                // 联机模式：返回房间等待界面
+                this.multiplayerUIManager.showLobby();
+            } else {
+                // 单人模式：显示游戏结束菜单
+                const isNewHighScore = this.scoreManager.saveHighScore();
+                this.uiManager.showGameOverMenu(
+                    this.scoreManager.getScore(),
+                    this.scoreManager.getHighScore(),
+                    isNewHighScore
+                );
+            }
         }, 800);
     }
 
@@ -1009,6 +1013,11 @@ export class Game {
                     playerEnemy.update(deltaTime);
                 }
             }
+
+            // 检测激光与本地玩家（敌人）的碰撞
+            if (this.playerRole === 'enemy' && this.localPlayerEnemy) {
+                this.checkLaserCollision();
+            }
         }
 
         // 更新子弹
@@ -1062,6 +1071,48 @@ export class Game {
 
         // 始终渲染场景
         this.render();
+    }
+
+    /**
+     * 检测激光是否与敌人重合（敌人视角）
+     */
+    checkLaserCollision() {
+        if (!this.localPlayerEnemy) return;
+
+        // 查找狙击手玩家
+        for (const [id, playerEnemy] of this.playerEnemies) {
+            // 跳过自己，只检查狙击手
+            if (id === this.networkManager.playerId || !playerEnemy.isScoped) continue;
+
+            // 获取激光射线的起点和方向
+            const laserStart = playerEnemy.position.clone();
+            const laserDirection = new THREE.Vector3();
+
+            // 从激光线的几何体中获取方向
+            if (playerEnemy.laserSight && playerEnemy.laserSight.geometry) {
+                const positions = playerEnemy.laserSight.geometry.attributes.position.array;
+                const start = new THREE.Vector3(positions[0], positions[1], positions[2]);
+                const end = new THREE.Vector3(positions[3], positions[4], positions[5]);
+                laserDirection.subVectors(end, start).normalize();
+
+                // 计算本地玩家位置到激光射线的距离
+                const playerPos = this.localPlayerEnemy.position.clone();
+                playerPos.y += 1; // 身体中心
+
+                // 点到射线的距离
+                const laserToPlayer = new THREE.Vector3();
+                laserToPlayer.subVectors(playerPos, start);
+                const projection = laserToPlayer.dot(laserDirection);
+                const closestPoint = start.clone().add(laserDirection.multiplyScalar(projection));
+                const distance = playerPos.distanceTo(closestPoint);
+
+                // 如果距离小于玩家半径，说明激光穿过了玩家
+                const playerRadius = 0.6;
+                if (distance < playerRadius && projection > 0) {
+                    console.log(`[Laser Collision] 狙击手激光正在瞄准你！距离身体中心: ${distance.toFixed(2)}m, 投影距离: ${projection.toFixed(2)}m`);
+                }
+            }
+        }
     }
 
     /**

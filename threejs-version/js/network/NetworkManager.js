@@ -24,6 +24,7 @@ export class NetworkManager {
         this.onRoomList = null;
         this.onPlayerJoined = null;
         this.onPlayerLeft = null;
+        this.onPlayerReady = null;  // 玩家准备状态变化回调
         this.onGameStarted = null;
         this.onPlayerMoved = null;
         this.onPlayerShot = null;
@@ -151,6 +152,12 @@ export class NetworkManager {
             if (this.onPlayerLeft) this.onPlayerLeft(data);
         });
 
+        this.socket.on('playerReady', (data) => {
+            console.log('Player ready status updated:', data);
+            this.currentPlayers = data.players || [];
+            if (this.onPlayerReady) this.onPlayerReady(data);
+        });
+
         this.socket.on('gameStarted', (data) => {
             console.log('Game started:', data);
             if (this.onGameStarted) this.onGameStarted(data);
@@ -234,6 +241,17 @@ export class NetworkManager {
             return;
         }
         this.socket.emit('joinRoom', { roomId, playerName });
+    }
+
+    /**
+     * 设置准备状态
+     */
+    setReady(isReady) {
+        if (!this.connected || !this.roomId) {
+            console.error('Not in a room');
+            return;
+        }
+        this.socket.emit('setReady', { isReady });
     }
 
     /**

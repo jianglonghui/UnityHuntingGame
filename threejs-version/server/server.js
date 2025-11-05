@@ -68,7 +68,8 @@ class Room {
             role: role,
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
-            isAlive: true
+            isAlive: true,
+            isReady: false  // 准备状态
         });
 
         if (role === PLAYER_ROLE.ENEMY) {
@@ -83,9 +84,27 @@ class Room {
         this.enemyLives.delete(socketId);
     }
 
+    setPlayerReady(socketId, isReady) {
+        const player = this.players.get(socketId);
+        if (player) {
+            player.isReady = isReady;
+            return true;
+        }
+        return false;
+    }
+
+    allPlayersReady() {
+        if (this.players.size < ROOM_CONFIG.MIN_PLAYERS) return false;
+        for (const player of this.players.values()) {
+            if (!player.isReady) return false;
+        }
+        return true;
+    }
+
     canStart() {
         return this.players.size >= ROOM_CONFIG.MIN_PLAYERS &&
-               this.state === ROOM_STATE.WAITING;
+               this.state === ROOM_STATE.WAITING &&
+               this.allPlayersReady();
     }
 
     startGame() {
@@ -97,9 +116,22 @@ class Room {
         // 重置所有玩家状态
         for (const [socketId, player] of this.players) {
             player.isAlive = true;
+            player.isReady = false;  // 游戏开始后重置准备状态
             if (player.role === PLAYER_ROLE.ENEMY) {
                 this.enemyLives.set(socketId, 3);
             }
+        }
+    }
+
+    gameOver() {
+        this.state = ROOM_STATE.WAITING;  // 游戏结束后回到等待状态
+        if (this.gameUpdateInterval) {
+            clearInterval(this.gameUpdateInterval);
+            this.gameUpdateInterval = null;
+        }
+        // 重置所有玩家准备状态
+        for (const player of this.players.values()) {
+            player.isReady = false;
         }
     }
 
@@ -275,6 +307,20 @@ io.on('connection', (socket) => {
         console.log(`${playerName} joined room ${roomId} as ${result.role}`);
     });
 
+    // 设置准备状态
+    socket.on('setReady', (data) => {
+        const room = rooms.get(socket.roomId);
+        if (!room) return;
+
+        room.setPlayerReady(socket.id, data.isReady);
+        console.log(`Player ${socket.id} ready status: ${data.isReady}`);
+
+        // 广播给房间内所有人
+        io.to(room.id).emit('playerReady', {
+            players: room.getPlayers()
+        });
+    });
+
     // 开始游戏
     socket.on('startGame', () => {
         const room = rooms.get(socket.roomId);
@@ -301,8 +347,7 @@ io.on('connection', (socket) => {
 
             // 检查游戏是否结束
             if (room.checkGameOver()) {
-                clearInterval(room.gameUpdateInterval);
-                room.gameUpdateInterval = null;
+                room.gameOver();  // 重置房间状态
 
                 io.to(room.id).emit('gameOver', {
                     sniperScore: room.sniperScore,
@@ -371,21 +416,9 @@ io.on('connection', (socket) => {
 
         // 检查游戏是否结束
         if (room.checkGameOver()) {
+            room.gameOver();  // 重置房间状态
             io.to(room.id).emit('gameOver', {
                 reason: 'allEnemiesKilled',
-                finalScore: room.sniperScore
-            });
-        }
-    });
-
-    // 游戏时间更新
-    socket.on('timeUpdate', () => {
-        const room = rooms.get(socket.roomId);
-        if (!room) return;
-
-        if (room.checkGameOver()) {
-            io.to(room.id).emit('gameOver', {
-                reason: 'timeout',
                 finalScore: room.sniperScore
             });
         }

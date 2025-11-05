@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     multiplayerUIManager.onMultiplayerGameStart = (data) => {
         console.log('Starting multiplayer mode');
-        game.startGame(true, networkManager); // true = 联机模式
+        game.startGame(true, networkManager, multiplayerUIManager); // true = 联机模式
         multiplayerUIManager.showGameUI();
     };
 
