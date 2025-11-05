@@ -244,7 +244,14 @@ export class Game {
      * 设置UI回调
      */
     setupUICallbacks() {
-        this.uiManager.onPlayButton = () => this.startGame();
+        this.uiManager.onPlayButton = () => {
+            // 在多人模式下，"再玩一次"应该返回主菜单而不是开始新游戏
+            if (this.isMultiplayer) {
+                this.returnToMainMenu();
+            } else {
+                this.startGame();
+            }
+        };
         this.uiManager.onResumeButton = () => this.resumeGame();
         this.uiManager.onMainMenuButton = () => this.returnToMainMenu();
     }
@@ -405,6 +412,9 @@ export class Game {
         // 显示游戏UI
         this.uiManager.showGameUI();
 
+        // 获取点击提示元素
+        const clickPrompt = document.getElementById('clickPrompt');
+
         // 狙击手模式设置
         if (!isMultiplayer || this.playerRole === 'sniper') {
             // 锁定鼠标
@@ -414,14 +424,21 @@ export class Game {
             this.player.isScoped = true;
             this.uiManager.showScope();
 
-            // 添加点击提示事件监听
-            const clickPrompt = document.getElementById('clickPrompt');
-            const hidePrompt = () => {
+            // 显示点击提示
+            if (clickPrompt) {
+                clickPrompt.style.display = 'flex';
+                const hidePrompt = () => {
+                    clickPrompt.style.display = 'none';
+                    document.removeEventListener('click', hidePrompt);
+                };
+                clickPrompt.addEventListener('click', hidePrompt);
+                document.addEventListener('click', hidePrompt, { once: true });
+            }
+        } else {
+            // 敌人模式：不需要鼠标锁定和瞄准镜
+            if (clickPrompt) {
                 clickPrompt.style.display = 'none';
-                document.removeEventListener('click', hidePrompt);
-            };
-            clickPrompt.addEventListener('click', hidePrompt);
-            document.addEventListener('click', hidePrompt, { once: true });
+            }
         }
 
         // 开始渲染循环
@@ -751,6 +768,14 @@ export class Game {
         this.isPlaying = false;
         this.isPaused = false;
         this.inputManager.exitPointerLock();
+
+        // 如果是多人模式，离开房间
+        if (this.isMultiplayer && this.networkManager) {
+            this.networkManager.leaveRoom();
+            this.isMultiplayer = false;
+            this.playerRole = null;
+        }
+
         this.resetGame();
         this.uiManager.showMainMenu();
         this.uiManager.updateHighScore(this.scoreManager.getHighScore());
