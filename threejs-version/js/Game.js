@@ -326,10 +326,23 @@ export class Game {
         // 显示游戏UI
         this.uiManager.showGameUI();
 
+        // 默认开启瞄准镜
+        this.player.isScoped = true;
+        this.uiManager.showScope();
+
+        // 添加点击提示事件监听
+        const clickPrompt = document.getElementById('clickPrompt');
+        const hidePrompt = () => {
+            clickPrompt.style.display = 'none';
+            document.removeEventListener('click', hidePrompt);
+        };
+        clickPrompt.addEventListener('click', hidePrompt);
+        document.addEventListener('click', hidePrompt, { once: true });
+
         // 开始渲染循环
         this.animate();
 
-        console.log('Game started!');
+        console.log('Game started! 提示：右键或Shift切换瞄准镜，左键或空格射击');
     }
 
     /**

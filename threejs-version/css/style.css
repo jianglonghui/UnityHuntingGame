@@ -149,6 +149,27 @@ body {
     margin-bottom: 10px;
 }
 
+/* 点击提示 */
+.click-prompt {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 32px;
+    color: #fff;
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 20px 40px;
+    border-radius: 10px;
+    animation: pulse 2s infinite;
+    pointer-events: all;
+    cursor: pointer;
+}
+
+.click-prompt:hover {
+    background: rgba(255, 102, 0, 0.8);
+}
+
 /* 准星 */
 #crosshair {
     position: absolute;
@@ -198,7 +219,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: #000;
+    pointer-events: none;
 }
 
 .scope-overlay {
@@ -215,27 +236,31 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 400px;
-    height: 400px;
-    border: 2px solid rgba(255, 255, 255, 0.5);
+    width: 500px;
+    height: 500px;
+    border: 3px solid rgba(255, 255, 255, 0.8);
     border-radius: 50%;
-    background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.9) 100%);
+    background: radial-gradient(circle, transparent 0%, transparent 48%, rgba(0,0,0,0.95) 50%);
+    box-shadow:
+        inset 0 0 50px rgba(0,0,0,0.5),
+        0 0 0 9999px rgba(0,0,0,0.95);
 }
 
 .scope-line {
     position: absolute;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.6);
+    z-index: 1;
 }
 
 .scope-line.horizontal {
     width: 100%;
-    height: 1px;
+    height: 2px;
     top: 50%;
     left: 0;
 }
 
 .scope-line.vertical {
-    width: 1px;
+    width: 2px;
     height: 100%;
     top: 0;
     left: 50%;

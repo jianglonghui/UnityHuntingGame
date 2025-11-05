@@ -112,12 +112,20 @@ export class Player {
      * 射击
      */
     shoot() {
-        if (!this.canShoot || !this.isScoped) {
+        if (!this.canShoot) {
+            console.log('Weapon cooling down...');
+            return null;
+        }
+
+        if (!this.isScoped) {
+            console.log('Need to open scope first! Press Right Click or Shift');
             return null;
         }
 
         this.canShoot = false;
         this.shootTimer = 0;
+
+        console.log('Shooting!');
 
         // 播放射击音效
         // if (this.shootSound.buffer) this.shootSound.play();
