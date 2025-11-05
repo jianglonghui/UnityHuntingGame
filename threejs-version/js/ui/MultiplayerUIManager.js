@@ -262,10 +262,9 @@ export class MultiplayerUIManager {
         this.startGameButton.style.display = 'block';
         this.startGameButton.disabled = true;
 
-        // 房主也需要准备
-        this.readyButton.style.display = 'block';
-        this.isReady = false;
-        this.updateReadyButton();
+        // 房主不需要准备，隐藏准备按钮
+        this.readyButton.style.display = 'none';
+        this.isReady = true; // 房主自动准备
     }
 
     /**
@@ -348,7 +347,8 @@ export class MultiplayerUIManager {
     updateReadyButton() {
         if (this.readyButton) {
             this.readyButton.textContent = this.isReady ? '取消准备' : '准备';
-            this.readyButton.style.backgroundColor = this.isReady ? '#ff6600' : '#666';
+            // 准备=橙色，取消准备=黄色
+            this.readyButton.style.backgroundColor = this.isReady ? '#ffaa00' : '#ff6600';
         }
     }
 
@@ -360,9 +360,12 @@ export class MultiplayerUIManager {
         this.createRoomMenu.classList.remove('hidden');
         this.createRoomMenu.classList.add('active');
 
-        // 重置准备状态
-        this.isReady = false;
-        this.updateReadyButton();
+        // 重置准备状态，房主（有开始按钮）自动准备
+        const isHost = this.startGameButton.style.display === 'block';
+        this.isReady = isHost;
+        if (!isHost) {
+            this.updateReadyButton();
+        }
     }
 
     /**

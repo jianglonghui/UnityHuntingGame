@@ -69,7 +69,7 @@ class Room {
             position: { x: 0, y: 0, z: 0 },
             rotation: { x: 0, y: 0, z: 0 },
             isAlive: true,
-            isReady: false  // 准备状态
+            isReady: role === PLAYER_ROLE.SNIPER  // 房主（狙击手）自动准备
         });
 
         if (role === PLAYER_ROLE.ENEMY) {
@@ -129,9 +129,9 @@ class Room {
             clearInterval(this.gameUpdateInterval);
             this.gameUpdateInterval = null;
         }
-        // 重置所有玩家准备状态
+        // 重置所有玩家准备状态，但房主自动准备
         for (const player of this.players.values()) {
-            player.isReady = false;
+            player.isReady = player.role === PLAYER_ROLE.SNIPER;
         }
     }
 
