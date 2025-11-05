@@ -120,9 +120,9 @@ export class PlayerEnemy {
         if (moveDirection.length() > 0) {
             moveDirection.normalize();
 
-            // 根据相机旋转角度转换移动方向
-            const rotatedX = moveDirection.x * Math.cos(cameraRotation) - moveDirection.z * Math.sin(cameraRotation);
-            const rotatedZ = moveDirection.x * Math.sin(cameraRotation) + moveDirection.z * Math.cos(cameraRotation);
+            // 根据相机旋转角度转换移动方向（Y轴旋转矩阵）
+            const rotatedX = moveDirection.x * Math.cos(cameraRotation) + moveDirection.z * Math.sin(cameraRotation);
+            const rotatedZ = -moveDirection.x * Math.sin(cameraRotation) + moveDirection.z * Math.cos(cameraRotation);
 
             this.velocity.set(
                 rotatedX * this.speed,
