@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     multiplayerUIManager.onMultiplayerGameStart = (data) => {
-        console.log('Starting multiplayer mode');
-        game.startGame(true, networkManager, multiplayerUIManager); // true = 联机模式
+        console.log('Starting multiplayer mode with seed:', data.sceneSeed);
+        game.startGame(true, networkManager, multiplayerUIManager, data.sceneSeed); // 传递场景种子
         multiplayerUIManager.showGameUI();
     };
 

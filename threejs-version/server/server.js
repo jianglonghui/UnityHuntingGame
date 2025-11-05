@@ -335,9 +335,14 @@ io.on('connection', (socket) => {
         }
 
         room.startGame();
+
+        // 生成场景种子，确保所有玩家看到相同的场景
+        const sceneSeed = Math.floor(Math.random() * 1000000);
+
         io.to(room.id).emit('gameStarted', {
             startTime: room.gameStartTime,
-            duration: ROOM_CONFIG.GAME_DURATION
+            duration: ROOM_CONFIG.GAME_DURATION,
+            sceneSeed: sceneSeed
         });
 
         // 启动游戏时间更新广播（每500ms广播一次剩余时间）

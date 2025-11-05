@@ -8,6 +8,7 @@ import { TimeManager } from './core/TimeManager.js';
 import { InputManager } from './core/InputManager.js';
 import { PhysicsManager } from './core/PhysicsManager.js';
 import { UIManager } from './ui/UIManager.js';
+import { SeededRandom } from './utils/SeededRandom.js';
 
 export class Game {
     constructor() {
@@ -45,6 +46,9 @@ export class Game {
         this.inputManager = new InputManager();
         this.physicsManager = new PhysicsManager();
         this.uiManager = new UIManager();
+
+        // 随机数生成器（用于场景生成）
+        this.random = null;
 
         // 环境
         this.ground = null;
@@ -147,8 +151,8 @@ export class Game {
         // 创建随机分布的树木
         for (let i = 0; i < 50; i++) {
             const tree = this.createTree();
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 20 + Math.random() * 70;
+            const angle = this.random.random() * Math.PI * 2;
+            const radius = 20 + this.random.random() * 70;
             tree.position.set(
                 Math.cos(angle) * radius,
                 0,
@@ -161,8 +165,8 @@ export class Game {
         // 创建随机分布的岩石
         for (let i = 0; i < 30; i++) {
             const rock = this.createRock();
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 15 + Math.random() * 75;
+            const angle = this.random.random() * Math.PI * 2;
+            const radius = 15 + this.random.random() * 75;
             rock.position.set(
                 Math.cos(angle) * radius,
                 0,
@@ -204,16 +208,16 @@ export class Game {
      * 创建岩石
      */
     createRock() {
-        const geometry = new THREE.DodecahedronGeometry(1 + Math.random());
+        const geometry = new THREE.DodecahedronGeometry(1 + this.random.random());
         const material = new THREE.MeshStandardMaterial({
             color: 0x808080,
             roughness: 0.9
         });
         const rock = new THREE.Mesh(geometry, material);
         rock.rotation.set(
-            Math.random() * Math.PI,
-            Math.random() * Math.PI,
-            Math.random() * Math.PI
+            this.random.random() * Math.PI,
+            this.random.random() * Math.PI,
+            this.random.random() * Math.PI
         );
         rock.castShadow = true;
         rock.receiveShadow = true;
@@ -386,8 +390,14 @@ export class Game {
     /**
      * 开始游戏
      */
-    startGame(isMultiplayer = false, networkManager = null, multiplayerUIManager = null) {
+    startGame(isMultiplayer = false, networkManager = null, multiplayerUIManager = null, sceneSeed = null) {
         console.log('Starting game...', isMultiplayer ? 'Multiplayer Mode' : 'Single Player Mode');
+
+        // 初始化随机数生成器
+        // 多人模式使用服务器提供的种子，单人模式使用随机种子
+        const seed = sceneSeed || Math.floor(Math.random() * 1000000);
+        this.random = new SeededRandom(seed);
+        console.log('Scene seed:', seed);
 
         // 重置游戏状态
         this.resetGame();
@@ -654,8 +664,8 @@ export class Game {
      * 获取随机生成位置
      */
     getRandomSpawnPosition() {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 30 + Math.random() * 40;
+        const angle = this.random.random() * Math.PI * 2;
+        const radius = 30 + this.random.random() * 40;
         return new THREE.Vector3(
             Math.cos(angle) * radius,
             0,
