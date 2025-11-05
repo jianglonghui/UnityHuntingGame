@@ -393,6 +393,16 @@ export class PlayerEnemy {
     }
 
     /**
+     * 死亡处理
+     */
+    onDeath() {
+        console.log(`${this.playerName} died!`);
+        this.isAlive = false;
+        this.lives = 0;
+        this.playDeathAnimation();
+    }
+
+    /**
      * 销毁敌人
      */
     destroy() {
