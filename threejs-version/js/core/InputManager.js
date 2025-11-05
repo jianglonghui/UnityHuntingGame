@@ -30,7 +30,9 @@ export class InputManager {
         document.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
         document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        document.addEventListener('wheel', (e) => this.handleWheel(e));
+
+        // 滚轮事件 - 必须设置 passive: false 才能使用 preventDefault()
+        document.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
 
         // 指针锁定事件
         document.addEventListener('pointerlockchange', () => this.handlePointerLockChange());
