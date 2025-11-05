@@ -13,6 +13,8 @@ export class UIManager {
         this.timeText = document.getElementById('time');
         this.zoomText = document.getElementById('zoom');
         this.scopeOverlay = document.getElementById('scope');
+        this.healthText = document.getElementById('health');
+        this.healthContainer = document.getElementById('healthContainer');
 
         // 游戏结束元素
         this.finalScoreText = document.getElementById('finalScore');
@@ -200,6 +202,42 @@ export class UIManager {
      */
     updateZoom(zoom) {
         this.zoomText.textContent = zoom.toFixed(1) + 'x';
+    }
+
+    /**
+     * 更新生命值显示
+     */
+    updateHealth(health, maxHealth = 3) {
+        if (this.healthText) {
+            this.healthText.textContent = health;
+
+            // 根据生命值改变颜色
+            if (health <= 1) {
+                this.healthText.style.color = '#ff0000';  // 红色
+            } else if (health <= 2) {
+                this.healthText.style.color = '#ffaa00';  // 橙色
+            } else {
+                this.healthText.style.color = '#00ff00';  // 绿色
+            }
+        }
+    }
+
+    /**
+     * 显示生命值容器（敌人模式）
+     */
+    showHealth() {
+        if (this.healthContainer) {
+            this.healthContainer.style.display = 'block';
+        }
+    }
+
+    /**
+     * 隐藏生命值容器（狙击手模式）
+     */
+    hideHealth() {
+        if (this.healthContainer) {
+            this.healthContainer.style.display = 'none';
+        }
     }
 
     /**

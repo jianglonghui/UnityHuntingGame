@@ -420,6 +420,10 @@ export class Game {
                 // 创建第三人称相机
                 this.createThirdPersonCamera();
 
+                // 显示生命值UI
+                this.uiManager.showHealth();
+                this.uiManager.updateHealth(this.localPlayerEnemy.lives);
+
                 console.log('Enemy mode: Use WASD to move, avoid the sniper!');
             }
         } else {
@@ -579,6 +583,9 @@ export class Game {
                 console.log('Local player hit!');
                 this.localPlayerEnemy.onHit();
                 this.localPlayerEnemy.lives = remainingLives;
+
+                // 更新生命值显示
+                this.uiManager.updateHealth(remainingLives);
 
                 // 显示屏幕闪烁效果
                 this.showHitEffect();
@@ -883,6 +890,9 @@ export class Game {
             this.isMultiplayer = false;
             this.playerRole = null;
         }
+
+        // 隐藏生命值UI
+        this.uiManager.hideHealth();
 
         this.resetGame();
         this.uiManager.showMainMenu();
