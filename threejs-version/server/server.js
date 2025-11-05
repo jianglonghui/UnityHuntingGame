@@ -353,6 +353,12 @@ io.on('connection', (socket) => {
                     sniperScore: room.sniperScore,
                     reason: 'timeUp'
                 });
+
+                // 广播更新后的玩家列表（包含重置后的准备状态）
+                io.to(room.id).emit('playerReady', {
+                    players: room.getPlayers()
+                });
+
                 console.log(`Game over in room ${room.id}, Sniper score: ${room.sniperScore}`);
             }
         }, 500);
@@ -420,6 +426,11 @@ io.on('connection', (socket) => {
             io.to(room.id).emit('gameOver', {
                 reason: 'allEnemiesKilled',
                 finalScore: room.sniperScore
+            });
+
+            // 广播更新后的玩家列表（包含重置后的准备状态）
+            io.to(room.id).emit('playerReady', {
+                players: room.getPlayers()
             });
         }
     });

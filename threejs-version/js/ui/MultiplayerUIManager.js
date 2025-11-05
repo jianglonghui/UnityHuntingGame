@@ -113,6 +113,13 @@ export class MultiplayerUIManager {
         this.networkManager.onPlayerReady = (data) => {
             console.log('Player ready status changed:', data);
             this.updateLobbyPlayerList(data.players);
+
+            // 同步本地的准备状态
+            const myPlayer = data.players.find(p => p.id === this.networkManager.playerId);
+            if (myPlayer) {
+                this.isReady = myPlayer.isReady;
+                this.updateReadyButton();
+            }
         };
 
         this.networkManager.onGameStarted = (data) => {
@@ -360,12 +367,8 @@ export class MultiplayerUIManager {
         this.createRoomMenu.classList.remove('hidden');
         this.createRoomMenu.classList.add('active');
 
-        // 重置准备状态，房主（有开始按钮）自动准备
-        const isHost = this.startGameButton.style.display === 'block';
-        this.isReady = isHost;
-        if (!isHost) {
-            this.updateReadyButton();
-        }
+        // 不在这里设置准备状态，等待服务器的playerReady事件更新
+        // 服务器会在gameOver后广播正确的准备状态
     }
 
     /**
