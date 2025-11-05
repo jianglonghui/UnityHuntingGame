@@ -13,6 +13,7 @@ export class Game {
         this.isInitialized = false;
         this.isPlaying = false;
         this.isPaused = false;
+        this.isGameOver = false;  // 防止重复触发游戏结束
 
         // Three.js核心对象
         this.scene = null;
@@ -349,6 +350,9 @@ export class Game {
      * 重置游戏
      */
     resetGame() {
+        // 重置游戏状态标志
+        this.isGameOver = false;
+
         // 清除旧的游戏对象
         if (this.spawner) {
             this.spawner.clearAll();
@@ -444,22 +448,38 @@ export class Game {
     /**
      * 游戏结束
      */
-    gameOver() {
-        console.log('Game Over!');
+    gameOver(reason = 'timeout') {
+        // 防止重复触发
+        if (this.isGameOver) return;
+
+        this.isGameOver = true;
+        console.log('Game Over! Reason:', reason);
 
         this.isPlaying = false;
         this.timeManager.pause();
         this.inputManager.exitPointerLock();
 
+        // 如果是被领袖杀死，显示伤害效果
+        if (reason === 'killed_by_leader') {
+            const damageOverlay = document.getElementById('damageOverlay');
+            damageOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                damageOverlay.classList.add('hidden');
+            }, 500);
+        }
+
         // 保存最高分
         const isNewHighScore = this.scoreManager.saveHighScore();
 
-        // 显示游戏结束菜单
-        this.uiManager.showGameOverMenu(
-            this.scoreManager.getScore(),
-            this.scoreManager.getHighScore(),
-            isNewHighScore
-        );
+        // 延迟显示菜单，给玩家一点反应时间
+        setTimeout(() => {
+            // 显示游戏结束菜单
+            this.uiManager.showGameOverMenu(
+                this.scoreManager.getScore(),
+                this.scoreManager.getHighScore(),
+                isNewHighScore
+            );
+        }, 800);
     }
 
     /**
@@ -527,12 +547,17 @@ export class Game {
      * 动画循环
      */
     animate() {
-        if (!this.isPlaying) return;
-
+        // 持续动画循环，即使游戏结束也继续渲染
         requestAnimationFrame(() => this.animate());
 
         const deltaTime = this.clock.getDelta();
-        this.update(deltaTime);
+
+        // 只在游戏进行时更新逻辑
+        if (this.isPlaying && !this.isPaused) {
+            this.update(deltaTime);
+        }
+
+        // 始终渲染场景
         this.render();
     }
 

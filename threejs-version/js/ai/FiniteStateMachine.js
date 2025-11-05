@@ -315,8 +315,9 @@ export class FiniteStateMachine {
         const distanceToPlayer = entity.position.distanceTo(playerPosition);
         if (distanceToPlayer < 3) {
             // 触发游戏结束
-            if (window.game) {
-                window.game.gameOver();
+            if (window.game && !window.game.isGameOver) {
+                console.log('Leader reached player! Game Over!');
+                window.game.gameOver('killed_by_leader');
             }
         }
     }
