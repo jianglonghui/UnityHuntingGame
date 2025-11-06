@@ -19,20 +19,20 @@ export class AudioManager {
         // 是否静音
         this.muted = false;
 
-        // 音效路径配置
+        // 音效路径配置（使用相对路径，兼容服务器部署）
         this.soundPaths = {
-            shoot: '/assets/sounds/shoot.mp3',
-            hit: '/assets/sounds/hit.mp3',
-            death: '/assets/sounds/death.mp3',
-            ui_click: '/assets/sounds/ui_click.mp3',
-            game_start: '/assets/sounds/game_start.mp3',
-            game_over: '/assets/sounds/game_over.mp3',
-            reload: '/assets/sounds/reload.mp3',
-            footstep: '/assets/sounds/footstep.mp3'
+            shoot: './assets/sounds/shoot.mp3',
+            hit: './assets/sounds/hit.mp3',
+            death: './assets/sounds/death.mp3',
+            ui_click: './assets/sounds/ui_click.mp3',
+            game_start: './assets/sounds/game_start.mp3',
+            game_over: './assets/sounds/game_over.mp3',
+            reload: './assets/sounds/reload.mp3',
+            footstep: './assets/sounds/footstep.mp3'
         };
 
-        // 音乐路径配置
-        this.musicPath = '/assets/music/background.mp3';
+        // 音乐路径配置（使用相对路径，兼容服务器部署）
+        this.musicPath = './assets/music/background.mp3';
 
         console.log('AudioManager initialized');
     }
