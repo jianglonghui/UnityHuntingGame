@@ -4,7 +4,7 @@ export class SmokeEffect {
         this.scene = scene;
         this.position = position.clone();
         this.smokeParticles = [];
-        this.lifetime = 5.0;  // 5秒生命周期
+        this.lifetime = 8.0;  // 8秒生命周期，更持久的遮挡
         this.age = 0;
         this.isActive = true;
 
@@ -83,26 +83,26 @@ export class SmokeEffect {
                 particle.userData.velocity.clone().multiplyScalar(deltaTime)
             );
 
-            // 速度逐渐衰减（但保持扩散）
-            particle.userData.velocity.multiplyScalar(0.98);
+            // 速度逐渐衰减（更慢，让烟雾停留更久）
+            particle.userData.velocity.multiplyScalar(0.99);
 
             // 旋转粒子
             particle.rotation.y += particle.userData.rotationSpeed * deltaTime;
             particle.rotation.x += particle.userData.rotationSpeed * 0.5 * deltaTime;
 
-            // 快速膨胀形成大范围烟雾墙
-            const scale = 1.0 + lifeProgress * 4.0;  // 最终变为5倍大小
+            // 较慢膨胀形成持久烟雾墙
+            const scale = 1.0 + lifeProgress * 3.0;  // 最终变为4倍大小（降低膨胀速度）
             particle.scale.set(scale, scale, scale);
 
-            // 不透明度变化：前40%时间保持高不透明（战术遮挡），后60%逐渐消散
+            // 不透明度变化：前60%时间保持高不透明（战术遮挡），后40%逐渐消散
             let opacity;
-            if (lifeProgress < 0.4) {
-                // 前2秒：保持浓密，微弱淡化
-                opacity = particle.userData.initialOpacity * (1.0 - lifeProgress * 0.3);
+            if (lifeProgress < 0.6) {
+                // 前4.8秒：保持浓密，极微弱淡化
+                opacity = particle.userData.initialOpacity * (1.0 - lifeProgress * 0.15);
             } else {
-                // 后3秒：快速消散
-                const fadeProgress = (lifeProgress - 0.4) / 0.6;
-                opacity = particle.userData.initialOpacity * 0.88 * (1.0 - Math.pow(fadeProgress, 1.5));
+                // 后3.2秒：缓慢消散
+                const fadeProgress = (lifeProgress - 0.6) / 0.4;
+                opacity = particle.userData.initialOpacity * 0.91 * (1.0 - Math.pow(fadeProgress, 2.0));
             }
             particle.material.opacity = opacity;
 
