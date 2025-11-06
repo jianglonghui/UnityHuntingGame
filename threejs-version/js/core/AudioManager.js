@@ -1,8 +1,7 @@
-import { Howl, Howler } from 'howler';
-
 /**
  * 音效管理器
  * 使用 Howler.js 管理游戏音效和音乐
+ * 注意：Howler.js 通过 script 标签在 index.html 中加载，Howl 和 Howler 是全局变量
  */
 export class AudioManager {
     constructor() {
