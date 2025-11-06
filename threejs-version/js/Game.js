@@ -1279,16 +1279,18 @@ export class Game {
             }
 
             // 应用或移除隐藏效果
-            if (inBush && !playerEnemy.userData.isHiddenInBush) {
+            if (inBush && !playerEnemy.userData?.isHiddenInBush) {
                 // 进入草丛，降低可见性
                 this.applyBushCover(playerEnemy, true);
+                // 确保 userData 存在
+                if (!playerEnemy.userData) playerEnemy.userData = {};
                 playerEnemy.userData.isHiddenInBush = true;
 
                 // 如果是本地玩家，显示提示
                 if (id === this.networkManager?.playerId) {
                     console.log('[Grass Bush] 你进入了草丛，狙击手更难发现你！');
                 }
-            } else if (!inBush && playerEnemy.userData.isHiddenInBush) {
+            } else if (!inBush && playerEnemy.userData?.isHiddenInBush) {
                 // 离开草丛，恢复可见性
                 this.applyBushCover(playerEnemy, false);
                 playerEnemy.userData.isHiddenInBush = false;
