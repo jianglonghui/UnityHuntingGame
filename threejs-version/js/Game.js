@@ -272,8 +272,8 @@ export class Game {
     createGrassBush() {
         const bush = new THREE.Group();
 
-        // 底部草丛基座（圆柱体）
-        const baseGeometry = new THREE.CylinderGeometry(1.5, 1.8, 1.2, 8);
+        // 底部草丛基座（圆柱体）- 尺寸翻倍
+        const baseGeometry = new THREE.CylinderGeometry(3.0, 3.6, 2.4, 8);
         const baseMaterial = new THREE.MeshStandardMaterial({
             color: 0x2d5016,
             roughness: 0.9,
@@ -281,7 +281,7 @@ export class Game {
             opacity: 0.8
         });
         const base = new THREE.Mesh(baseGeometry, baseMaterial);
-        base.position.y = 0.6;
+        base.position.y = 1.2;
         base.receiveShadow = true;
         bush.add(base);
 
@@ -294,34 +294,34 @@ export class Game {
             side: THREE.DoubleSide
         });
 
-        // 添加几层草叶（扁平的圆锥体）
+        // 添加几层草叶（扁平的圆锥体）- 尺寸翻倍
         for (let i = 0; i < 3; i++) {
             const leafGeometry = new THREE.ConeGeometry(
-                1.2 - i * 0.3,
-                0.8,
+                2.4 - i * 0.6,
+                1.6,
                 6
             );
             const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
-            leaf.position.y = 1.2 + i * 0.4;
+            leaf.position.y = 2.4 + i * 0.8;
             leaf.rotation.y = (this.random.random() * Math.PI) / 3;
             bush.add(leaf);
         }
 
-        // 添加一些突出的草叶（使用平面）
+        // 添加一些突出的草叶（使用平面）- 尺寸翻倍
         for (let i = 0; i < 6; i++) {
-            const bladeGeometry = new THREE.PlaneGeometry(0.3, 1.5);
+            const bladeGeometry = new THREE.PlaneGeometry(0.6, 3.0);
             const blade = new THREE.Mesh(bladeGeometry, leafMaterial);
             const angle = (i / 6) * Math.PI * 2;
-            blade.position.x = Math.cos(angle) * 1.2;
-            blade.position.z = Math.sin(angle) * 1.2;
-            blade.position.y = 1.5;
+            blade.position.x = Math.cos(angle) * 2.4;
+            blade.position.z = Math.sin(angle) * 2.4;
+            blade.position.y = 3.0;
             blade.rotation.y = angle + Math.PI / 2;
             blade.rotation.x = 0.2;
             bush.add(blade);
         }
 
-        // 存储草丛半径用于碰撞检测
-        bush.userData.radius = 1.8;
+        // 存储草丛半径用于碰撞检测 - 翻倍
+        bush.userData.radius = 3.6;
         bush.userData.isGrassBush = true;
 
         return bush;
