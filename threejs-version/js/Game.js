@@ -55,6 +55,7 @@ export class Game {
         // 环境
         this.ground = null;
         this.obstacles = [];
+        this.grassBushes = []; // 草丛掩体数组
 
         // 设置UI回调
         this.setupUICallbacks();
@@ -156,6 +157,12 @@ export class Game {
             this.scene.remove(obstacle);
         }
         this.obstacles = [];
+
+        // 清理草丛
+        for (const bush of this.grassBushes) {
+            this.scene.remove(bush);
+        }
+        this.grassBushes = [];
     }
 
     /**
@@ -188,6 +195,20 @@ export class Game {
             );
             this.scene.add(rock);
             this.obstacles.push(rock);
+        }
+
+        // 创建随机分布的草丛掩体
+        for (let i = 0; i < 25; i++) {
+            const bush = this.createGrassBush();
+            const angle = this.random.random() * Math.PI * 2;
+            const radius = 10 + this.random.random() * 80;
+            bush.position.set(
+                Math.cos(angle) * radius,
+                0,
+                Math.sin(angle) * radius
+            );
+            this.scene.add(bush);
+            this.grassBushes.push(bush);
         }
     }
 
@@ -236,6 +257,67 @@ export class Game {
         rock.castShadow = true;
         rock.receiveShadow = true;
         return rock;
+    }
+
+    /**
+     * 创建草丛掩体
+     */
+    createGrassBush() {
+        const bush = new THREE.Group();
+
+        // 底部草丛基座（圆柱体）
+        const baseGeometry = new THREE.CylinderGeometry(1.5, 1.8, 1.2, 8);
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2d5016,
+            roughness: 0.9,
+            transparent: true,
+            opacity: 0.8
+        });
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.y = 0.6;
+        base.receiveShadow = true;
+        bush.add(base);
+
+        // 创建多层草叶
+        const leafMaterial = new THREE.MeshStandardMaterial({
+            color: 0x3a7d44,
+            roughness: 0.8,
+            transparent: true,
+            opacity: 0.7,
+            side: THREE.DoubleSide
+        });
+
+        // 添加几层草叶（扁平的圆锥体）
+        for (let i = 0; i < 3; i++) {
+            const leafGeometry = new THREE.ConeGeometry(
+                1.2 - i * 0.3,
+                0.8,
+                6
+            );
+            const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+            leaf.position.y = 1.2 + i * 0.4;
+            leaf.rotation.y = (this.random.random() * Math.PI) / 3;
+            bush.add(leaf);
+        }
+
+        // 添加一些突出的草叶（使用平面）
+        for (let i = 0; i < 6; i++) {
+            const bladeGeometry = new THREE.PlaneGeometry(0.3, 1.5);
+            const blade = new THREE.Mesh(bladeGeometry, leafMaterial);
+            const angle = (i / 6) * Math.PI * 2;
+            blade.position.x = Math.cos(angle) * 1.2;
+            blade.position.z = Math.sin(angle) * 1.2;
+            blade.position.y = 1.5;
+            blade.rotation.y = angle + Math.PI / 2;
+            blade.rotation.x = 0.2;
+            bush.add(blade);
+        }
+
+        // 存储草丛半径用于碰撞检测
+        bush.userData.radius = 1.8;
+        bush.userData.isGrassBush = true;
+
+        return bush;
     }
 
     /**
@@ -1071,6 +1153,9 @@ export class Game {
             if (this.playerRole === 'enemy' && this.localPlayerEnemy) {
                 this.checkLaserCollision();
             }
+
+            // 检测所有玩家敌人是否在草丛内
+            this.checkGrassBushCover();
         }
 
         // 更新子弹
@@ -1166,6 +1251,73 @@ export class Game {
                 }
             }
         }
+    }
+
+    /**
+     * 检测玩家是否在草丛内并应用隐藏效果
+     */
+    checkGrassBushCover() {
+        if (!this.isMultiplayer) return;
+
+        // 检测所有玩家敌人
+        for (const [id, playerEnemy] of this.playerEnemies) {
+            if (!playerEnemy || !playerEnemy.mesh) continue;
+
+            let inBush = false;
+
+            // 检测是否在任何草丛范围内
+            for (const bush of this.grassBushes) {
+                const distance = playerEnemy.position.distanceTo(bush.position);
+                if (distance < bush.userData.radius) {
+                    inBush = true;
+                    break;
+                }
+            }
+
+            // 应用或移除隐藏效果
+            if (inBush && !playerEnemy.userData.isHiddenInBush) {
+                // 进入草丛，降低可见性
+                this.applyBushCover(playerEnemy, true);
+                playerEnemy.userData.isHiddenInBush = true;
+
+                // 如果是本地玩家，显示提示
+                if (id === this.networkManager?.playerId) {
+                    console.log('[Grass Bush] 你进入了草丛，狙击手更难发现你！');
+                }
+            } else if (!inBush && playerEnemy.userData.isHiddenInBush) {
+                // 离开草丛，恢复可见性
+                this.applyBushCover(playerEnemy, false);
+                playerEnemy.userData.isHiddenInBush = false;
+
+                // 如果是本地玩家，显示提示
+                if (id === this.networkManager?.playerId) {
+                    console.log('[Grass Bush] 你离开了草丛。');
+                }
+            }
+        }
+    }
+
+    /**
+     * 应用草丛掩护效果
+     */
+    applyBushCover(playerEnemy, hide) {
+        if (!playerEnemy.mesh) return;
+
+        // 遍历所有子网格并设置透明度
+        playerEnemy.mesh.traverse((child) => {
+            if (child.isMesh && child.material) {
+                // 确保材质支持透明度
+                child.material.transparent = true;
+
+                if (hide) {
+                    // 在草丛中：降低透明度（30%可见）
+                    child.material.opacity = 0.3;
+                } else {
+                    // 离开草丛：恢复完全可见
+                    child.material.opacity = 1.0;
+                }
+            }
+        });
     }
 
     /**
