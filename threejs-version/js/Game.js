@@ -944,11 +944,11 @@ export class Game {
     }
 
     /**
-     * 暂停游戏
+     * 暂停游戏（只解锁鼠标，游戏画面继续）
      */
     pauseGame() {
         this.isPaused = true;
-        this.timeManager.pause();
+        // 不暂停时间管理器，让倒计时继续
         this.inputManager.exitPointerLock();
         this.uiManager.showPauseMenu();
     }
@@ -958,7 +958,7 @@ export class Game {
      */
     resumeGame() {
         this.isPaused = false;
-        this.timeManager.resume();
+        // 不需要恢复时间管理器
         this.inputManager.requestPointerLock();
         this.uiManager.hidePauseMenu();
     }
@@ -1228,11 +1228,8 @@ export class Game {
             }
         }
 
-        // 更新场景树倒地动画（即使暂停也要更新）
+        // 更新场景树倒地动画
         this.updateSceneTreesFall(deltaTime);
-
-        // 如果游戏暂停，只更新时间、烟雾和树倒地，不更新其他游戏逻辑
-        if (this.isPaused) return;
 
         // 处理冻结期倒计时
         if (this.isFrozen) {
@@ -1416,8 +1413,8 @@ export class Game {
 
         const deltaTime = this.clock.getDelta();
 
-        // 只在游戏进行时更新逻辑
-        if (this.isPlaying && !this.isPaused) {
+        // 只在游戏进行时更新逻辑（暂停时也继续更新，只是玩家不能操作）
+        if (this.isPlaying) {
             this.update(deltaTime);
         }
 
