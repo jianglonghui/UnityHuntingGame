@@ -46,7 +46,10 @@ export class PlayerEnemy {
         this.transformationState = {
             isTransformed: false,
             currentType: null,
-            transformModel: null
+            transformModel: null,
+            isFalling: false,
+            fallProgress: 0,
+            fallDirection: new THREE.Vector3()
         };
 
         // 添加到场景

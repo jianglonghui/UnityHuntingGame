@@ -55,7 +55,10 @@ export class Game {
             currentType: null,
             transformModel: null,
             transformTimer: 0,
-            transformDuration: 10.0  // 变身持续10秒
+            transformDuration: 10.0,  // 变身持续10秒
+            isFalling: false,
+            fallProgress: 0,
+            fallDirection: new THREE.Vector3()
         };
 
         // 管理器
@@ -825,6 +828,12 @@ export class Game {
             this.handlePlayerTransformation(playerId, type, isTransformed);
         };
 
+        // 树倒地
+        this.networkManager.onTreeFall = (data) => {
+            const { playerId, shootDirection } = data;
+            this.handleTreeFall(playerId, shootDirection);
+        };
+
         // 游戏结束
         this.networkManager.onGameOver = (data) => {
             console.log('Game over:', data);
@@ -1275,6 +1284,11 @@ export class Game {
                         // 变身时间到，解除变身
                         this.endTransformation();
                     }
+
+                    // 处理树倒地动画（本地玩家）
+                    if (this.transformationState.isFalling && this.transformationState.transformModel) {
+                        this.updateTreeFallAnimation(this.transformationState, deltaTime, true);
+                    }
                 }
             }
 
@@ -1286,6 +1300,11 @@ export class Game {
                     // 同步变身模型位置
                     if (playerEnemy.transformationState?.isTransformed && playerEnemy.transformationState.transformModel) {
                         playerEnemy.transformationState.transformModel.position.copy(playerEnemy.position);
+
+                        // 处理树倒地动画（远程玩家）
+                        if (playerEnemy.transformationState.isFalling) {
+                            this.updateTreeFallAnimation(playerEnemy.transformationState, deltaTime, false);
+                        }
                     }
                 }
             }
@@ -1701,6 +1720,116 @@ export class Game {
 
             console.log(`[变身] 玩家 ${playerId} 解除变身`);
         }
+    }
+
+    /**
+     * 更新树倒地动画
+     * @param {Object} transformState - 变身状态对象
+     * @param {number} deltaTime - 时间增量
+     * @param {boolean} isLocal - 是否是本地玩家
+     */
+    updateTreeFallAnimation(transformState, deltaTime, isLocal) {
+        if (!transformState.isFalling) return;
+        if (!transformState.transformModel) return;
+
+        const model = transformState.transformModel;
+        const fallSpeed = 1.5; // 倒地速度（1.5秒倒地）
+
+        // 更新倒地进度
+        transformState.fallProgress += deltaTime * fallSpeed;
+
+        if (transformState.fallProgress >= 1.0) {
+            // 倒地完成
+            transformState.fallProgress = 1.0;
+            transformState.isFalling = false;
+
+            // 2秒后解除变身
+            setTimeout(() => {
+                if (isLocal) {
+                    // 本地玩家解除变身
+                    this.endTransformation();
+                } else {
+                    // 远程玩家解除变身（本地移除模型）
+                    if (transformState.transformModel) {
+                        this.scene.remove(transformState.transformModel);
+                        transformState.transformModel = null;
+                    }
+                    // 需要找到对应的playerEnemy来显示mesh
+                    for (const [id, playerEnemy] of this.playerEnemies) {
+                        if (playerEnemy.transformationState === transformState) {
+                            if (playerEnemy.mesh) {
+                                playerEnemy.mesh.visible = true;
+                            }
+                            playerEnemy.transformationState.isTransformed = false;
+                            playerEnemy.transformationState.currentType = null;
+                            break;
+                        }
+                    }
+                }
+            }, 2000);
+        }
+
+        // 平滑倒地旋转（从0度到90度）
+        const targetRotation = Math.PI / 2 * transformState.fallProgress;
+
+        // 计算倒地的旋转轴（垂直于倒地方向）
+        const fallDir = transformState.fallDirection;
+        const rotationAxis = new THREE.Vector3(-fallDir.z, 0, fallDir.x).normalize();
+
+        // 应用旋转
+        model.quaternion.setFromAxisAngle(rotationAxis, targetRotation);
+    }
+
+    /**
+     * 处理树倒地事件（网络同步）
+     * @param {string} playerId - 玩家ID
+     * @param {Object} shootDirection - 射击方向
+     */
+    handleTreeFall(playerId, shootDirection) {
+        // 确定是本地玩家还是远程玩家
+        let transformState = null;
+        let isLocal = false;
+
+        if (playerId === this.networkManager?.playerId && this.localPlayerEnemy) {
+            // 本地玩家使用Game.js中的transformationState
+            transformState = this.transformationState;
+            isLocal = true;
+        } else {
+            // 远程玩家使用PlayerEnemy中的transformationState
+            const playerEnemy = this.playerEnemies.get(playerId);
+            if (playerEnemy) {
+                transformState = playerEnemy.transformationState;
+            }
+        }
+
+        if (!transformState) {
+            console.warn(`[树倒地] 玩家 ${playerId} 不存在`);
+            return;
+        }
+
+        if (!transformState.isTransformed || transformState.currentType !== 'tree') {
+            console.warn(`[树倒地] 玩家 ${playerId} 没有变身为树`);
+            return;
+        }
+
+        console.log(`[树倒地] 玩家 ${playerId} 的树开始倒地`);
+
+        const transformModel = transformState.transformModel;
+        if (!transformModel) return;
+
+        // 计算倒地方向（与射击方向相同）
+        const fallDir = new THREE.Vector3(
+            shootDirection.x,
+            0,
+            shootDirection.z
+        ).normalize();
+
+        // 保存倒地信息
+        transformState.isFalling = true;
+        transformState.fallProgress = 0;
+        transformState.fallDirection.copy(fallDir);
+
+        // 倒地动画将在update循环中处理
     }
 
     /**

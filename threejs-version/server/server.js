@@ -49,6 +49,7 @@ class Room {
         this.gameStartTime = null;
         this.sniperScore = 0;
         this.enemyLives = new Map();
+        this.transformationStates = new Map(); // 跟踪玩家变身状态 {playerId: {type, isTransformed}}
     }
 
     addPlayer(socketId, playerName) {
@@ -420,6 +421,21 @@ io.on('connection', (socket) => {
                     remainingLives: lives,
                     score: room.sniperScore
                 });
+
+                // 检查被击中的敌人是否变身为树
+                const transformState = room.transformationStates.get(data.hitEnemyId);
+                if (transformState && transformState.isTransformed && transformState.type === 'tree') {
+                    console.log(`[Server] Tree hit! Broadcasting treeFall event for player ${data.hitEnemyId}`);
+
+                    // 广播树倒地事件
+                    io.to(room.id).emit('treeFall', {
+                        playerId: data.hitEnemyId,
+                        shootDirection: data.direction
+                    });
+
+                    // 击中树后强制解除变身
+                    room.transformationStates.delete(data.hitEnemyId);
+                }
             }
         } else {
             console.log(`[Server] No hit registered for this shot`);
@@ -449,6 +465,16 @@ io.on('connection', (socket) => {
         if (!player || player.role !== PLAYER_ROLE.ENEMY) return;
 
         console.log(`[Server] Player ${socket.id} transformation: ${data.type}, isTransformed: ${data.isTransformed}`);
+
+        // 更新服务器端的变身状态
+        if (data.isTransformed) {
+            room.transformationStates.set(socket.id, {
+                type: data.type,
+                isTransformed: true
+            });
+        } else {
+            room.transformationStates.delete(socket.id);
+        }
 
         // 广播变身状态到房间内所有玩家（包括自己，用于同步验证）
         io.to(room.id).emit('playerTransformation', {

@@ -34,6 +34,7 @@ export class NetworkManager {
         this.onError = null;
         this.onTimeUpdate = null;  // 时间更新回调
         this.onPlayerTransformation = null;  // 玩家变身状态回调
+        this.onTreeFall = null;  // 树倒地事件回调
     }
 
     /**
@@ -181,6 +182,11 @@ export class NetworkManager {
         this.socket.on('playerTransformation', (data) => {
             console.log('Player transformation:', data);
             if (this.onPlayerTransformation) this.onPlayerTransformation(data);
+        });
+
+        this.socket.on('treeFall', (data) => {
+            console.log('Tree fall:', data);
+            if (this.onTreeFall) this.onTreeFall(data);
         });
 
         this.socket.on('gameOver', (data) => {
