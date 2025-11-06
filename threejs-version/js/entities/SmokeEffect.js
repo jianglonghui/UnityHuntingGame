@@ -12,15 +12,15 @@ export class SmokeEffect {
     }
 
     /**
-     * 创建战术烟雾粒子（密集、超大范围）
+     * 创建战术烟雾粒子（密集、适中范围）
      */
     createSmoke() {
-        // 创建100-160个烟雾粒子，形成巨大密集烟雾墙
-        const particleCount = 100 + Math.floor(Math.random() * 61);
+        // 创建70-100个烟雾粒子，形成密集烟雾墙
+        const particleCount = 70 + Math.floor(Math.random() * 31);
 
         for (let i = 0; i < particleCount; i++) {
-            // 创建更大的球体作为烟雾粒子
-            const size = 3.0 + Math.random() * 2.0;  // 3.0-5.0米直径（翻倍）
+            // 创建适中大小的球体作为烟雾粒子
+            const size = 2.0 + Math.random() * 1.5;  // 2.0-3.5米直径
             const geometry = new THREE.SphereGeometry(size, 8, 8);
 
             // 浓密的白色/灰色烟雾
@@ -35,10 +35,10 @@ export class SmokeEffect {
 
             const particle = new THREE.Mesh(geometry, material);
 
-            // 随机初始位置（在击中点周围超大范围分布）
+            // 随机初始位置（在击中点周围适中范围分布）
             const angle = Math.random() * Math.PI * 2;
-            const radius = Math.random() * 5.0;  // 扩大到5.0米半径（翻倍）
-            const height = Math.random() * 4.0;  // 0-4米高度范围（翻倍）
+            const radius = Math.random() * 3.5;  // 3.5米半径
+            const height = Math.random() * 3.0;  // 0-3米高度范围
 
             particle.position.set(
                 this.position.x + Math.cos(angle) * radius,
