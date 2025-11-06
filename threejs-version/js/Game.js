@@ -41,6 +41,11 @@ export class Game {
         this.cameraRotationX = 0.3;      // 垂直旋转（俯视角度）
         this.cameraSensitivity = 0.002;  // 鼠标灵敏度
 
+        // 游戏开始冻结期（狙击手准备时间）
+        this.FREEZE_DURATION = 5.0;      // 5秒冻结时间
+        this.freezeTime = 0;             // 冻结倒计时
+        this.isFrozen = false;           // 是否处于冻结状态
+
         // 管理器
         this.scoreManager = new ScoreManager();
         this.timeManager = new TimeManager(60);
@@ -563,7 +568,17 @@ export class Game {
         // 开始游戏
         this.isPlaying = true;
         this.isPaused = false;
-        this.timeManager.start();
+
+        // 联机模式下，设置5秒冻结期供敌人躲藏
+        if (this.isMultiplayer) {
+            this.isFrozen = true;
+            this.freezeTime = this.FREEZE_DURATION;
+            console.log('游戏开始 - 5秒准备时间');
+            // 联机模式下不立即开始计时，等待冻结期结束
+        } else {
+            // 单人模式立即开始计时
+            this.timeManager.start();
+        }
 
         // 播放游戏开始音效
         try {
@@ -1080,6 +1095,33 @@ export class Game {
 
         // 如果游戏暂停，只更新时间，不更新其他游戏逻辑
         if (this.isPaused) return;
+
+        // 处理冻结期倒计时
+        if (this.isFrozen) {
+            this.freezeTime -= deltaTime;
+
+            // 更新冻结倒计时UI
+            this.uiManager.updateFreezeCountdown(Math.ceil(this.freezeTime));
+
+            if (this.freezeTime <= 0) {
+                // 冻结期结束
+                this.isFrozen = false;
+                this.freezeTime = 0;
+
+                // 开始计时
+                this.timeManager.start();
+
+                // 隐藏倒计时UI
+                this.uiManager.hideFreezeCountdown();
+
+                console.log('准备时间结束 - 游戏正式开始！');
+            }
+
+            // 如果是狙击手，在冻结期内不能移动和射击
+            if (this.playerRole === 'sniper') {
+                return;
+            }
+        }
 
         // 更新玩家
         if (this.player) {

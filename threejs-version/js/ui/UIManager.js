@@ -21,6 +21,10 @@ export class UIManager {
         this.pingText = document.getElementById('ping');
         this.pingContainer = document.getElementById('pingContainer');
 
+        // 冻结倒计时元素
+        this.freezeCountdown = document.getElementById('freezeCountdown');
+        this.freezeCountdownNumber = this.freezeCountdown ? this.freezeCountdown.querySelector('.countdown-number') : null;
+
         // 游戏结束元素
         this.finalScoreText = document.getElementById('finalScore');
         this.finalHighScoreText = document.getElementById('finalHighScore');
@@ -318,6 +322,25 @@ export class UIManager {
     hidePing() {
         if (this.pingContainer) {
             this.pingContainer.style.display = 'none';
+        }
+    }
+
+    /**
+     * 更新冻结倒计时
+     */
+    updateFreezeCountdown(seconds) {
+        if (this.freezeCountdown && this.freezeCountdownNumber) {
+            this.freezeCountdown.classList.remove('hidden');
+            this.freezeCountdownNumber.textContent = seconds;
+        }
+    }
+
+    /**
+     * 隐藏冻结倒计时
+     */
+    hideFreezeCountdown() {
+        if (this.freezeCountdown) {
+            this.freezeCountdown.classList.add('hidden');
         }
     }
 }
