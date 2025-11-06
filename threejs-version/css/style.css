@@ -540,6 +540,87 @@ body {
     display: none !important;
 }
 
+/* 变身物品栏 */
+.transformation-inventory {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    z-index: 100;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    border: 2px solid #666;
+}
+
+.transformation-slot {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #666;
+    border-radius: 8px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.transformation-slot:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #ff6600;
+    transform: translateY(-3px);
+}
+
+.slot-key {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 102, 0, 0.8);
+    color: white;
+    border-radius: 3px;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slot-icon {
+    font-size: 36px;
+    transition: all 0.3s;
+}
+
+.slot-icon.empty {
+    color: #444;
+}
+
+.slot-icon.empty::before {
+    content: '□';
+    font-size: 32px;
+}
+
+.slot-icon.tree,
+.slot-icon.rock,
+.slot-icon.grass {
+    animation: slot-glow 2s infinite;
+}
+
+@keyframes slot-glow {
+    0%, 100% {
+        transform: scale(1);
+        filter: brightness(1);
+    }
+    50% {
+        transform: scale(1.1);
+        filter: brightness(1.3);
+    }
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
     .menu {
@@ -557,5 +638,20 @@ body {
     .menu-button {
         width: 180px;
         font-size: 16px;
+    }
+
+    .transformation-inventory {
+        bottom: 60px;
+        gap: 10px;
+        padding: 10px 15px;
+    }
+
+    .transformation-slot {
+        width: 60px;
+        height: 60px;
+    }
+
+    .slot-icon {
+        font-size: 28px;
     }
 }
