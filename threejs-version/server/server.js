@@ -440,6 +440,24 @@ io.on('connection', (socket) => {
         }
     });
 
+    // 玩家变身
+    socket.on('transformation', (data) => {
+        const room = rooms.get(socket.roomId);
+        if (!room) return;
+
+        const player = room.players.get(socket.id);
+        if (!player || player.role !== PLAYER_ROLE.ENEMY) return;
+
+        console.log(`[Server] Player ${socket.id} transformation: ${data.type}, isTransformed: ${data.isTransformed}`);
+
+        // 广播变身状态到房间内所有玩家（包括自己，用于同步验证）
+        io.to(room.id).emit('playerTransformation', {
+            playerId: socket.id,
+            type: data.type,
+            isTransformed: data.isTransformed
+        });
+    });
+
     // 离开房间
     socket.on('leaveRoom', () => {
         const room = rooms.get(socket.roomId);

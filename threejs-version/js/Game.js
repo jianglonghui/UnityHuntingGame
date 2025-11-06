@@ -819,6 +819,12 @@ export class Game {
             }
         };
 
+        // 玩家变身
+        this.networkManager.onPlayerTransformation = (data) => {
+            const { playerId, type, isTransformed } = data;
+            this.handlePlayerTransformation(playerId, type, isTransformed);
+        };
+
         // 游戏结束
         this.networkManager.onGameOver = (data) => {
             console.log('Game over:', data);
@@ -1276,6 +1282,11 @@ export class Game {
             for (const [id, playerEnemy] of this.playerEnemies) {
                 if (id !== this.networkManager?.playerId) {
                     playerEnemy.update(deltaTime);
+
+                    // 同步变身模型位置
+                    if (playerEnemy.transformationState?.isTransformed && playerEnemy.transformationState.transformModel) {
+                        playerEnemy.transformationState.transformModel.position.copy(playerEnemy.position);
+                    }
                 }
             }
 
@@ -1456,90 +1467,102 @@ export class Game {
      * 使用变身道具
      */
     /**
-     * 创建变身模型
+     * 创建变身模型（使用现有的场景物体）
      * @param {string} type - 变身类型：'tree', 'rock', 'grass'
-     * @returns {THREE.Group} 变身后的3D模型
+     * @returns {THREE.Group|THREE.Mesh} 变身后的3D模型
      */
     createTransformationModel(type) {
-        const group = new THREE.Group();
+        let model;
 
         switch (type) {
             case 'tree':
-                // 树干（深棕色圆柱体）
-                const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2.5, 8);
-                const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x4d2600 });
+                // 使用现有的树木创建方法
+                const tree = new THREE.Group();
+
+                // 树干
+                const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 3, 8);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x4a2511 });
                 const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-                trunk.position.y = 1.25;
+                trunk.position.y = 1.5;
                 trunk.castShadow = true;
                 trunk.receiveShadow = true;
-                group.add(trunk);
+                tree.add(trunk);
 
-                // 树冠（绿色圆锥体，3层）
-                const foliageColors = [0x2d5016, 0x3d6e1f, 0x4d8c2a];
-                for (let i = 0; i < 3; i++) {
-                    const foliageGeometry = new THREE.ConeGeometry(1.2 - i * 0.3, 1.5, 8);
-                    const foliageMaterial = new THREE.MeshLambertMaterial({ color: foliageColors[i] });
-                    const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
-                    foliage.position.y = 2.5 + i * 0.8;
-                    foliage.castShadow = true;
-                    foliage.receiveShadow = true;
-                    group.add(foliage);
-                }
+                // 树冠
+                const foliageGeometry = new THREE.ConeGeometry(2, 4, 8);
+                const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x2d5016 });
+                const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                foliage.position.y = 4.5;
+                foliage.castShadow = true;
+                foliage.receiveShadow = true;
+                tree.add(foliage);
+
+                model = tree;
                 break;
 
             case 'rock':
-                // 石头（灰色不规则球体）
-                const rockGeometry = new THREE.DodecahedronGeometry(0.9, 0);
-                const rockMaterial = new THREE.MeshLambertMaterial({
+                // 使用现有的岩石创建方法
+                const geometry = new THREE.DodecahedronGeometry(1 + Math.random() * 0.5);
+                const material = new THREE.MeshStandardMaterial({
                     color: 0x808080,
-                    flatShading: true
+                    roughness: 0.9
                 });
-                const rock = new THREE.Mesh(rockGeometry, rockMaterial);
-                rock.position.y = 0.9;
-                rock.castShadow = true;
-                rock.receiveShadow = true;
-
-                // 随机旋转让石头看起来更自然
+                const rock = new THREE.Mesh(geometry, material);
+                rock.position.y = 1;
                 rock.rotation.set(
                     Math.random() * Math.PI,
                     Math.random() * Math.PI,
                     Math.random() * Math.PI
                 );
-
-                // 稍微压扁
-                rock.scale.set(1.2, 0.8, 1.1);
-                group.add(rock);
+                rock.castShadow = true;
+                rock.receiveShadow = true;
+                model = rock;
                 break;
 
             case 'grass':
-                // 草丛（多个深绿色扁平圆柱体）
-                const grassBladeCount = 8;
-                for (let i = 0; i < grassBladeCount; i++) {
-                    const angle = (i / grassBladeCount) * Math.PI * 2;
-                    const grassGeometry = new THREE.CylinderGeometry(0.05, 0.08, 1.2, 4);
-                    const grassMaterial = new THREE.MeshLambertMaterial({
-                        color: 0x2d5016,
-                        side: THREE.DoubleSide
-                    });
-                    const grassBlade = new THREE.Mesh(grassGeometry, grassMaterial);
+                // 使用现有的草丛创建方法
+                const bush = new THREE.Group();
 
-                    // 围成一圈
-                    grassBlade.position.x = Math.cos(angle) * 0.4;
-                    grassBlade.position.z = Math.sin(angle) * 0.4;
-                    grassBlade.position.y = 0.6;
+                // 底部草丛基座（圆柱体）
+                const baseGeometry = new THREE.CylinderGeometry(3.0, 3.6, 2.4, 8);
+                const baseMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x2d5016,
+                    roughness: 0.9,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const base = new THREE.Mesh(baseGeometry, baseMaterial);
+                base.position.y = 1.2;
+                base.receiveShadow = true;
+                bush.add(base);
 
-                    // 稍微向外倾斜
-                    grassBlade.rotation.z = Math.cos(angle) * 0.2;
-                    grassBlade.rotation.x = Math.sin(angle) * 0.2;
+                // 创建多层草叶
+                const leafMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x3a7d44,
+                    roughness: 0.8,
+                    transparent: true,
+                    opacity: 0.7,
+                    side: THREE.DoubleSide
+                });
 
-                    grassBlade.castShadow = true;
-                    grassBlade.receiveShadow = true;
-                    group.add(grassBlade);
+                // 添加几层草叶
+                for (let i = 0; i < 3; i++) {
+                    const leafGeometry = new THREE.ConeGeometry(
+                        2.4 - i * 0.6,
+                        1.6,
+                        6
+                    );
+                    const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                    leaf.position.y = 2.4 + i * 0.8;
+                    leaf.rotation.y = (Math.random() * Math.PI) / 3;
+                    bush.add(leaf);
                 }
+
+                model = bush;
                 break;
         }
 
-        return group;
+        return model;
     }
 
     /**
@@ -1583,12 +1606,18 @@ export class Game {
         this.audioManager.playUIClick();
 
         console.log(`[变身] 变为${this.transformationInventory.getTypeName(type)}，持续${this.transformationState.transformDuration}秒`);
+
+        // 发送变身状态到服务器（多人模式）
+        if (this.isMultiplayer && this.networkManager) {
+            this.networkManager.sendTransformation(type, true);
+        }
     }
 
     /**
      * 结束变身状态
+     * @param {boolean} sendToNetwork - 是否发送到网络（默认true）
      */
-    endTransformation() {
+    endTransformation(sendToNetwork = true) {
         if (!this.transformationState.isTransformed) {
             return;
         }
@@ -1610,6 +1639,68 @@ export class Game {
         this.transformationState.isTransformed = false;
         this.transformationState.currentType = null;
         this.transformationState.transformTimer = 0;
+
+        // 发送解除变身到服务器（多人模式）
+        if (sendToNetwork && this.isMultiplayer && this.networkManager) {
+            this.networkManager.sendTransformation(null, false);
+        }
+    }
+
+    /**
+     * 处理其他玩家的变身状态更新（网络同步）
+     * @param {string} playerId - 玩家ID
+     * @param {string|null} type - 变身类型（'tree', 'rock', 'grass'）或null表示解除变身
+     * @param {boolean} isTransformed - 是否变身
+     */
+    handlePlayerTransformation(playerId, type, isTransformed) {
+        // 不处理本地玩家的变身（本地玩家直接调用useTransformation）
+        if (playerId === this.networkManager?.playerId) {
+            return;
+        }
+
+        const playerEnemy = this.playerEnemies.get(playerId);
+        if (!playerEnemy) {
+            console.warn(`[变身] 玩家 ${playerId} 不存在`);
+            return;
+        }
+
+        if (isTransformed && type) {
+            // 变身：隐藏原始模型，创建变身模型
+            if (playerEnemy.mesh) {
+                playerEnemy.mesh.visible = false;
+            }
+
+            // 如果已有变身模型，先移除
+            if (playerEnemy.transformationState.transformModel) {
+                this.scene.remove(playerEnemy.transformationState.transformModel);
+            }
+
+            // 创建新的变身模型
+            const transformModel = this.createTransformationModel(type);
+            transformModel.position.copy(playerEnemy.position);
+            this.scene.add(transformModel);
+
+            playerEnemy.transformationState.isTransformed = true;
+            playerEnemy.transformationState.currentType = type;
+            playerEnemy.transformationState.transformModel = transformModel;
+
+            console.log(`[变身] 玩家 ${playerId} 变身为 ${type}`);
+        } else {
+            // 解除变身：移除变身模型，显示原始模型
+            if (playerEnemy.transformationState.transformModel) {
+                this.scene.remove(playerEnemy.transformationState.transformModel);
+                playerEnemy.transformationState.transformModel = null;
+            }
+
+            if (playerEnemy.mesh) {
+                playerEnemy.mesh.visible = true;
+            }
+
+            playerEnemy.transformationState.isTransformed = false;
+            playerEnemy.transformationState.currentType = null;
+
+            console.log(`[变身] 玩家 ${playerId} 解除变身`);
+        }
     }
 
     /**

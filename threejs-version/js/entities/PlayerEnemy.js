@@ -42,6 +42,13 @@ export class PlayerEnemy {
         this.isScoped = false;  // 是否开启瞄准镜
         this.createLaserSight();
 
+        // 变身状态
+        this.transformationState = {
+            isTransformed: false,
+            currentType: null,
+            transformModel: null
+        };
+
         // 添加到场景
         this.scene.add(this.mesh);
     }

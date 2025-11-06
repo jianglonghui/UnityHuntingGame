@@ -33,6 +33,7 @@ export class NetworkManager {
         this.onRoomClosed = null;
         this.onError = null;
         this.onTimeUpdate = null;  // 时间更新回调
+        this.onPlayerTransformation = null;  // 玩家变身状态回调
     }
 
     /**
@@ -177,6 +178,11 @@ export class NetworkManager {
             if (this.onEnemyHit) this.onEnemyHit(data);
         });
 
+        this.socket.on('playerTransformation', (data) => {
+            console.log('Player transformation:', data);
+            if (this.onPlayerTransformation) this.onPlayerTransformation(data);
+        });
+
         this.socket.on('gameOver', (data) => {
             console.log('Game over:', data);
             if (this.onGameOver) this.onGameOver(data);
@@ -279,6 +285,14 @@ export class NetworkManager {
     sendShoot(position, direction, hitEnemyId = null) {
         if (!this.connected || !this.roomId) return;
         this.socket.emit('shoot', { position, direction, hitEnemyId });
+    }
+
+    /**
+     * 发送变身状态
+     */
+    sendTransformation(type, isTransformed) {
+        if (!this.connected || !this.roomId) return;
+        this.socket.emit('transformation', { type, isTransformed });
     }
 
     /**
