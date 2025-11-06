@@ -2,7 +2,11 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+    <meta name="screen-orientation" content="landscape">
     <title>狩猎游戏 - Three.js版本</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -138,6 +142,35 @@
 
         <!-- 被攻击效果 -->
         <div id="damageOverlay" class="damage-overlay hidden"></div>
+
+        <!-- 移动端虚拟控制 -->
+        <div id="mobileControls" class="mobile-controls hidden">
+            <!-- 左侧控制区域（可选，用于未来扩展） -->
+            <div class="controls-left">
+                <!-- 可添加虚拟摇杆等 -->
+            </div>
+
+            <!-- 右侧控制区域 -->
+            <div class="controls-right">
+                <!-- 开镜按钮 -->
+                <button id="scopeButton" class="control-button scope-btn">
+                    <span class="button-icon">🔭</span>
+                    <span class="button-label">瞄准</span>
+                </button>
+
+                <!-- 射击按钮 -->
+                <button id="shootButton" class="control-button shoot-btn">
+                    <span class="button-icon">🎯</span>
+                    <span class="button-label">射击</span>
+                </button>
+
+                <!-- 缩放控制 -->
+                <div class="zoom-controls">
+                    <button id="zoomInButton" class="control-button zoom-btn">+</button>
+                    <button id="zoomOutButton" class="control-button zoom-btn">-</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 暂停菜单 -->

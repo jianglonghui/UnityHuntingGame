@@ -621,7 +621,242 @@ body {
     }
 }
 
-/* 响应式 */
+/* 移动端虚拟控制 */
+.mobile-controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 150;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 20px;
+}
+
+.controls-left,
+.controls-right {
+    pointer-events: all;
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.controls-right {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+}
+
+.control-button {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: rgba(255, 102, 0, 0.8);
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.control-button:active {
+    background: rgba(255, 102, 0, 1);
+    transform: scale(0.95);
+    box-shadow: 0 0 20px rgba(255, 102, 0, 0.8);
+}
+
+.button-icon {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.button-label {
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.shoot-btn {
+    width: 90px;
+    height: 90px;
+    background: rgba(255, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.9);
+}
+
+.shoot-btn:active {
+    background: rgba(255, 0, 0, 1);
+    box-shadow: 0 0 25px rgba(255, 0, 0, 0.9);
+}
+
+.scope-btn {
+    background: rgba(0, 150, 255, 0.8);
+}
+
+.scope-btn:active {
+    background: rgba(0, 150, 255, 1);
+    box-shadow: 0 0 20px rgba(0, 150, 255, 0.8);
+}
+
+.scope-btn.active {
+    background: rgba(0, 255, 150, 0.9);
+    box-shadow: 0 0 20px rgba(0, 255, 150, 0.6);
+}
+
+.zoom-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.zoom-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    background: rgba(100, 100, 100, 0.8);
+}
+
+.zoom-btn:active {
+    background: rgba(150, 150, 150, 1);
+}
+
+/* 响应式 - 横屏优化 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .menu {
+        padding: 20px 30px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .menu h1 {
+        font-size: 28px;
+        margin-bottom: 15px;
+    }
+
+    .menu h2 {
+        font-size: 22px;
+        margin-bottom: 12px;
+    }
+
+    .menu-button {
+        width: 160px;
+        font-size: 14px;
+        padding: 10px 20px;
+        margin: 10px auto;
+    }
+
+    #hud {
+        top: 10px;
+        left: 10px;
+        font-size: 18px;
+    }
+
+    .hud-item {
+        margin-bottom: 5px;
+    }
+
+    #infoPanel {
+        top: 10px;
+        right: 10px;
+        font-size: 12px;
+    }
+
+    .transformation-inventory {
+        bottom: 20px;
+        gap: 8px;
+        padding: 8px 12px;
+    }
+
+    .transformation-slot {
+        width: 50px;
+        height: 50px;
+    }
+
+    .slot-icon {
+        font-size: 24px;
+    }
+
+    .slot-key {
+        width: 18px;
+        height: 18px;
+        font-size: 12px;
+    }
+
+    .instructions-content {
+        max-width: 350px;
+        font-size: 14px;
+    }
+
+    .game-over-stats {
+        font-size: 18px;
+    }
+
+    .click-prompt {
+        font-size: 24px;
+        padding: 15px 30px;
+    }
+
+    .freeze-countdown {
+        padding: 25px 40px;
+    }
+
+    .freeze-countdown .countdown-text {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+
+    .freeze-countdown .countdown-number {
+        font-size: 64px;
+    }
+
+    .freeze-countdown .countdown-hint {
+        font-size: 16px;
+        margin-top: 15px;
+    }
+
+    /* 瞄准镜在横屏时调整大小 */
+    .scope-circle {
+        width: 400px;
+        height: 400px;
+    }
+}
+
+/* 响应式 - 竖屏提示 */
+@media (max-width: 768px) and (orientation: portrait) {
+    body::before {
+        content: '请旋转设备至横屏模式以获得最佳游戏体验';
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.95);
+        color: #ff6600;
+        padding: 30px 40px;
+        border-radius: 10px;
+        font-size: 20px;
+        text-align: center;
+        z-index: 10000;
+        border: 3px solid #ff6600;
+        max-width: 80%;
+        line-height: 1.5;
+    }
+
+    #game-container,
+    .menu,
+    #gameUI {
+        filter: blur(5px);
+    }
+}
+
+/* 响应式 - 通用移动端 */
 @media (max-width: 768px) {
     .menu {
         padding: 30px 40px;
@@ -653,5 +888,17 @@ body {
 
     .slot-icon {
         font-size: 28px;
+    }
+
+    /* 移动端显示虚拟控制 */
+    .mobile-controls {
+        display: flex !important;
+    }
+}
+
+/* 桌面端隐藏移动控制 */
+@media (min-width: 769px) {
+    .mobile-controls {
+        display: none !important;
     }
 }
