@@ -3,6 +3,7 @@ import { Player } from './entities/Player.js';
 import { Spawner } from './entities/Spawner.js';
 import { Bullet } from './entities/Bullet.js';
 import { PlayerEnemy } from './entities/PlayerEnemy.js';
+import { SmokeEffect } from './entities/SmokeEffect.js';
 import { ScoreManager } from './core/ScoreManager.js';
 import { TimeManager } from './core/TimeManager.js';
 import { InputManager } from './core/InputManager.js';
@@ -27,6 +28,7 @@ export class Game {
         this.player = null;
         this.spawner = null;
         this.bullets = [];
+        this.smokeEffects = [];  // 烟雾效果数组
 
         // 联机模式
         this.isMultiplayer = false;
@@ -737,6 +739,10 @@ export class Game {
                 // 播放击中音效
                 this.audioManager.playHit();
 
+                // 创建烟雾效果
+                const smoke = new SmokeEffect(this.scene, this.localPlayerEnemy.position);
+                this.smokeEffects.push(smoke);
+
                 // 更新生命值显示
                 this.uiManager.updateHealth(remainingLives);
 
@@ -760,6 +766,10 @@ export class Game {
 
                 // 播放击中音效
                 this.audioManager.playHit();
+
+                // 创建烟雾效果
+                const smoke = new SmokeEffect(this.scene, playerEnemy.position);
+                this.smokeEffects.push(smoke);
 
                 // 敌人死亡
                 if (remainingLives <= 0) {
@@ -961,6 +971,10 @@ export class Game {
                     hitEnemy.onHit();
                     // 播放击中音效
                     this.audioManager.playHit();
+
+                    // 创建烟雾效果
+                    const smoke = new SmokeEffect(this.scene, hitEnemy.position);
+                    this.smokeEffects.push(smoke);
 
                     const newScore = this.scoreManager.addScore(1);
                     this.uiManager.updateScore(newScore);
@@ -1213,6 +1227,18 @@ export class Game {
             if (!bullet.isActive || bullet.checkGroundHit()) {
                 bullet.destroy();
                 this.bullets.splice(i, 1);
+            }
+        }
+
+        // 更新烟雾效果
+        for (let i = this.smokeEffects.length - 1; i >= 0; i--) {
+            const smoke = this.smokeEffects[i];
+            smoke.update(deltaTime);
+
+            // 移除已经消散的烟雾
+            if (!smoke.isAlive()) {
+                smoke.destroy();
+                this.smokeEffects.splice(i, 1);
             }
         }
 
