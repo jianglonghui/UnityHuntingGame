@@ -10,6 +10,7 @@ import { InputManager } from './core/InputManager.js';
 import { PhysicsManager } from './core/PhysicsManager.js';
 import { UIManager } from './ui/UIManager.js';
 import { AudioManager } from './core/AudioManager.js';
+import { TransformationInventory } from './core/TransformationInventory.js';
 import { SeededRandom } from './utils/SeededRandom.js';
 
 export class Game {
@@ -55,6 +56,7 @@ export class Game {
         this.physicsManager = new PhysicsManager();
         this.uiManager = new UIManager();
         this.audioManager = new AudioManager();
+        this.transformationInventory = new TransformationInventory();
 
         // 随机数生成器（用于场景生成）
         this.random = null;
@@ -431,6 +433,16 @@ export class Game {
                     this.shoot();
                 }
             }
+            // 1/2/3键：敌人使用变身道具
+            else if (event.code === 'Digit1' && this.playerRole === 'enemy') {
+                this.useTransformation(0);
+            }
+            else if (event.code === 'Digit2' && this.playerRole === 'enemy') {
+                this.useTransformation(1);
+            }
+            else if (event.code === 'Digit3' && this.playerRole === 'enemy') {
+                this.useTransformation(2);
+            }
 
             // WASD移动（联机敌人模式）
             if (this.isMultiplayer && this.playerRole === 'enemy' && this.localPlayerEnemy) {
@@ -548,6 +560,9 @@ export class Game {
                 // 显示生命值UI
                 this.uiManager.showHealth();
                 this.uiManager.updateHealth(this.localPlayerEnemy.lives);
+
+                // 显示变身物品栏
+                this.transformationInventory.show();
 
                 console.log('Enemy mode: Use WASD to move, avoid the sniper!');
             }
@@ -742,6 +757,12 @@ export class Game {
                 // 创建烟雾效果
                 const smoke = new SmokeEffect(this.scene, this.localPlayerEnemy.position);
                 this.smokeEffects.push(smoke);
+
+                // 给敌人添加随机变身道具
+                const item = this.transformationInventory.addRandomTransformation();
+                if (item) {
+                    console.log(`[变身] 获得${this.transformationInventory.getTypeName(item.type)}道具 (槽位${item.slot + 1})`);
+                }
 
                 // 更新生命值显示
                 this.uiManager.updateHealth(remainingLives);
@@ -1392,6 +1413,44 @@ export class Game {
                 }
             }
         });
+    }
+
+    /**
+     * 使用变身道具
+     */
+    useTransformation(slotIndex) {
+        if (!this.localPlayerEnemy || this.playerRole !== 'enemy') {
+            return;
+        }
+
+        const type = this.transformationInventory.useTransformation(slotIndex);
+        if (!type) {
+            return; // 槽位为空
+        }
+
+        console.log(`[变身] 使用${this.transformationInventory.getTypeName(type)}道具`);
+
+        // TODO: 实现实际的变身视觉效果
+        // 暂时使用透明度变化作为占位
+        if (this.localPlayerEnemy.mesh) {
+            this.localPlayerEnemy.mesh.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    child.material.transparent = true;
+                    // 变身时暂时变为半透明（后续替换为真正的模型）
+                    child.material.opacity = 0.5;
+
+                    // 3秒后恢复
+                    setTimeout(() => {
+                        if (child.material) {
+                            child.material.opacity = 1.0;
+                        }
+                    }, 3000);
+                }
+            });
+        }
+
+        // 播放UI点击音效
+        this.audioManager.playUIClick();
     }
 
     /**
