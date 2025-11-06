@@ -257,6 +257,12 @@ export class Game {
         foliage.receiveShadow = true;
         tree.add(foliage);
 
+        // 标记为可击中的树
+        tree.userData.isTree = true;
+        tree.userData.isFallen = false;
+        tree.userData.fallProgress = 0;
+        tree.userData.fallDirection = new THREE.Vector3();
+
         return tree;
     }
 
@@ -991,12 +997,38 @@ export class Game {
                 for (const [id, playerEnemy] of this.playerEnemies) {
                     if (!playerEnemy.isAlive) continue;
 
-                    const intersect = raycaster.intersectObject(playerEnemy.mesh, true);
+                    // 如果玩家变身了，检测变身模型；否则检测玩家mesh
+                    let targetMesh = playerEnemy.mesh;
+                    if (playerEnemy.transformationState?.isTransformed && playerEnemy.transformationState.transformModel) {
+                        targetMesh = playerEnemy.transformationState.transformModel;
+                    }
+
+                    const intersect = raycaster.intersectObject(targetMesh, true);
                     if (intersect.length > 0 && intersect[0].distance < closestDistance) {
                         closestDistance = intersect[0].distance;
                         closestEnemy = playerEnemy;
                         hitEnemyId = id;
                     }
+                }
+
+                // 检测场景中的树
+                let hitTree = null;
+                for (let i = 0; i < this.obstacles.length; i++) {
+                    const obstacle = this.obstacles[i];
+                    if (!obstacle.userData.isTree) continue;
+                    if (obstacle.userData.isFallen) continue; // 已经倒地的树不再检测
+
+                    const intersect = raycaster.intersectObject(obstacle, true);
+                    if (intersect.length > 0 && intersect[0].distance < closestDistance) {
+                        closestDistance = intersect[0].distance;
+                        hitTree = obstacle;
+                        hitEnemyId = null; // 击中树，不是敌人
+                    }
+                }
+
+                // 如果击中了树，触发倒地
+                if (hitTree && !hitEnemyId) {
+                    this.makeTreeFall(hitTree, shootData.direction);
                 }
 
                 // 发送射击事件到服务器
@@ -1017,7 +1049,7 @@ export class Game {
                 // 注意：不在本地立即显示击中效果，等待服务器的权威判定
                 // 这样可以避免客户端和服务器的生命值不同步
             } else {
-                // 单人模式：检测AI敌人
+                // 单人模式：检测AI敌人和场景树
                 const hitEnemy = this.spawner.checkShootHit(ray);
 
                 if (hitEnemy) {
@@ -1031,6 +1063,25 @@ export class Game {
 
                     const newScore = this.scoreManager.addScore(1);
                     this.uiManager.updateScore(newScore);
+                } else {
+                    // 没有击中敌人，检测场景中的树
+                    let closestDistance = Infinity;
+                    let hitTree = null;
+
+                    for (const obstacle of this.obstacles) {
+                        if (!obstacle.userData.isTree) continue;
+                        if (obstacle.userData.isFallen) continue;
+
+                        const intersect = raycaster.intersectObject(obstacle, true);
+                        if (intersect.length > 0 && intersect[0].distance < closestDistance) {
+                            closestDistance = intersect[0].distance;
+                            hitTree = obstacle;
+                        }
+                    }
+
+                    if (hitTree) {
+                        this.makeTreeFall(hitTree, shootData.direction);
+                    }
                 }
             }
 
@@ -1177,7 +1228,10 @@ export class Game {
             }
         }
 
-        // 如果游戏暂停，只更新时间和烟雾，不更新其他游戏逻辑
+        // 更新场景树倒地动画（即使暂停也要更新）
+        this.updateSceneTreesFall(deltaTime);
+
+        // 如果游戏暂停，只更新时间、烟雾和树倒地，不更新其他游戏逻辑
         if (this.isPaused) return;
 
         // 处理冻结期倒计时
@@ -1830,6 +1884,66 @@ export class Game {
         transformState.fallDirection.copy(fallDir);
 
         // 倒地动画将在update循环中处理
+    }
+
+    /**
+     * 让场景中的树倒地
+     * @param {THREE.Group} tree - 树对象
+     * @param {THREE.Vector3} shootDirection - 射击方向
+     */
+    makeTreeFall(tree, shootDirection) {
+        if (!tree || !tree.userData.isTree) return;
+        if (tree.userData.isFallen) return; // 已经倒地了
+
+        console.log('[场景树倒地] 树开始倒地');
+
+        // 计算倒地方向（与射击方向相同）
+        const fallDir = new THREE.Vector3(
+            shootDirection.x,
+            0,
+            shootDirection.z
+        ).normalize();
+
+        // 标记为正在倒地
+        tree.userData.isFalling = true;
+        tree.userData.fallProgress = 0;
+        tree.userData.fallDirection.copy(fallDir);
+
+        // 播放击中音效
+        this.audioManager.playHit();
+    }
+
+    /**
+     * 更新场景树倒地动画
+     * @param {number} deltaTime - 时间增量
+     */
+    updateSceneTreesFall(deltaTime) {
+        const fallSpeed = 1.5; // 倒地速度（1.5秒倒地）
+
+        for (const obstacle of this.obstacles) {
+            if (!obstacle.userData.isTree) continue;
+            if (!obstacle.userData.isFalling) continue;
+
+            // 更新倒地进度
+            obstacle.userData.fallProgress += deltaTime * fallSpeed;
+
+            if (obstacle.userData.fallProgress >= 1.0) {
+                // 倒地完成
+                obstacle.userData.fallProgress = 1.0;
+                obstacle.userData.isFalling = false;
+                obstacle.userData.isFallen = true;
+            }
+
+            // 平滑倒地旋转（从0度到90度）
+            const targetRotation = Math.PI / 2 * obstacle.userData.fallProgress;
+
+            // 计算倒地的旋转轴（垂直于倒地方向）
+            const fallDir = obstacle.userData.fallDirection;
+            const rotationAxis = new THREE.Vector3(-fallDir.z, 0, fallDir.x).normalize();
+
+            // 应用旋转
+            obstacle.quaternion.setFromAxisAngle(rotationAxis, targetRotation);
+        }
     }
 
     /**
