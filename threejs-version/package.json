@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@geckos.io/client": "^3.0.2",
     "howler": "^2.2.4"
   }
 }
