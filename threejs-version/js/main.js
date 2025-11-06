@@ -13,11 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 创建网络管理器
     const networkManager = new NetworkManager();
 
-    // 创建联机UI管理器
-    const multiplayerUIManager = new MultiplayerUIManager(networkManager);
-
     // 初始化游戏
     game.init();
+
+    // 创建联机UI管理器（传入audioManager）
+    const multiplayerUIManager = new MultiplayerUIManager(networkManager, game.audioManager);
 
     // 设置联机UI回调
     multiplayerUIManager.onSinglePlayer = () => {

@@ -1,7 +1,8 @@
 // 联机UI管理器
 export class MultiplayerUIManager {
-    constructor(networkManager) {
+    constructor(networkManager, audioManager) {
         this.networkManager = networkManager;
+        this.audioManager = audioManager;
 
         // 菜单元素
         this.mainMenu = document.getElementById('mainMenu');
@@ -113,6 +114,11 @@ export class MultiplayerUIManager {
         this.networkManager.onPlayerReady = (data) => {
             console.log('Player ready status changed:', data);
             this.updateLobbyPlayerList(data.players);
+
+            // 播放UI点击音效（房主收到其他玩家准备状态时）
+            if (this.audioManager) {
+                this.audioManager.playUIClick();
+            }
 
             // 同步本地的准备状态
             const myPlayer = data.players.find(p => p.id === this.networkManager.playerId);
@@ -346,6 +352,11 @@ export class MultiplayerUIManager {
         this.isReady = !this.isReady;
         this.updateReadyButton();
         this.networkManager.setReady(this.isReady);
+
+        // 播放UI点击音效
+        if (this.audioManager) {
+            this.audioManager.playUIClick();
+        }
     }
 
     /**
