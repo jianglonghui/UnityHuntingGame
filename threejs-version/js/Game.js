@@ -49,6 +49,15 @@ export class Game {
         this.freezeTime = 0;             // 冻结倒计时
         this.isFrozen = false;           // 是否处于冻结状态
 
+        // 变身系统
+        this.transformationState = {
+            isTransformed: false,
+            currentType: null,
+            transformModel: null,
+            transformTimer: 0,
+            transformDuration: 10.0  // 变身持续10秒
+        };
+
         // 管理器
         this.scoreManager = new ScoreManager();
         this.timeManager = new TimeManager(60);
@@ -882,6 +891,14 @@ export class Game {
         this.playerEnemies.clear();
         this.localPlayerEnemy = null;
 
+        // 清理变身状态
+        if (this.transformationState.isTransformed) {
+            this.endTransformation();
+        }
+
+        // 清空变身物品栏
+        this.transformationInventory.clear();
+
         // 重置管理器
         this.scoreManager.resetScore();
         this.timeManager.reset();
@@ -1029,6 +1046,11 @@ export class Game {
         this.isPlaying = false;
         this.timeManager.pause();
         this.inputManager.exitPointerLock();
+
+        // 清理变身状态
+        if (this.transformationState.isTransformed) {
+            this.endTransformation();
+        }
 
         // 如果是被领袖杀死，显示伤害效果
         if (reason === 'killed_by_leader') {
@@ -1233,6 +1255,21 @@ export class Game {
                     lookAtTarget.y += 1.5;  // 看向玩家上半身
                     this.thirdPersonCamera.lookAt(lookAtTarget);
                 }
+
+                // 更新变身状态
+                if (this.transformationState.isTransformed) {
+                    // 同步变身模型位置到玩家位置
+                    if (this.transformationState.transformModel) {
+                        this.transformationState.transformModel.position.copy(this.localPlayerEnemy.position);
+                    }
+
+                    // 更新变身计时器
+                    this.transformationState.transformTimer -= deltaTime;
+                    if (this.transformationState.transformTimer <= 0) {
+                        // 变身时间到，解除变身
+                        this.endTransformation();
+                    }
+                }
             }
 
             // 更新所有玩家敌人
@@ -1418,9 +1455,105 @@ export class Game {
     /**
      * 使用变身道具
      */
+    /**
+     * 创建变身模型
+     * @param {string} type - 变身类型：'tree', 'rock', 'grass'
+     * @returns {THREE.Group} 变身后的3D模型
+     */
+    createTransformationModel(type) {
+        const group = new THREE.Group();
+
+        switch (type) {
+            case 'tree':
+                // 树干（深棕色圆柱体）
+                const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 2.5, 8);
+                const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x4d2600 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.y = 1.25;
+                trunk.castShadow = true;
+                trunk.receiveShadow = true;
+                group.add(trunk);
+
+                // 树冠（绿色圆锥体，3层）
+                const foliageColors = [0x2d5016, 0x3d6e1f, 0x4d8c2a];
+                for (let i = 0; i < 3; i++) {
+                    const foliageGeometry = new THREE.ConeGeometry(1.2 - i * 0.3, 1.5, 8);
+                    const foliageMaterial = new THREE.MeshLambertMaterial({ color: foliageColors[i] });
+                    const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                    foliage.position.y = 2.5 + i * 0.8;
+                    foliage.castShadow = true;
+                    foliage.receiveShadow = true;
+                    group.add(foliage);
+                }
+                break;
+
+            case 'rock':
+                // 石头（灰色不规则球体）
+                const rockGeometry = new THREE.DodecahedronGeometry(0.9, 0);
+                const rockMaterial = new THREE.MeshLambertMaterial({
+                    color: 0x808080,
+                    flatShading: true
+                });
+                const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+                rock.position.y = 0.9;
+                rock.castShadow = true;
+                rock.receiveShadow = true;
+
+                // 随机旋转让石头看起来更自然
+                rock.rotation.set(
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI,
+                    Math.random() * Math.PI
+                );
+
+                // 稍微压扁
+                rock.scale.set(1.2, 0.8, 1.1);
+                group.add(rock);
+                break;
+
+            case 'grass':
+                // 草丛（多个深绿色扁平圆柱体）
+                const grassBladeCount = 8;
+                for (let i = 0; i < grassBladeCount; i++) {
+                    const angle = (i / grassBladeCount) * Math.PI * 2;
+                    const grassGeometry = new THREE.CylinderGeometry(0.05, 0.08, 1.2, 4);
+                    const grassMaterial = new THREE.MeshLambertMaterial({
+                        color: 0x2d5016,
+                        side: THREE.DoubleSide
+                    });
+                    const grassBlade = new THREE.Mesh(grassGeometry, grassMaterial);
+
+                    // 围成一圈
+                    grassBlade.position.x = Math.cos(angle) * 0.4;
+                    grassBlade.position.z = Math.sin(angle) * 0.4;
+                    grassBlade.position.y = 0.6;
+
+                    // 稍微向外倾斜
+                    grassBlade.rotation.z = Math.cos(angle) * 0.2;
+                    grassBlade.rotation.x = Math.sin(angle) * 0.2;
+
+                    grassBlade.castShadow = true;
+                    grassBlade.receiveShadow = true;
+                    group.add(grassBlade);
+                }
+                break;
+        }
+
+        return group;
+    }
+
+    /**
+     * 使用变身道具
+     * @param {number} slotIndex - 物品槽索引（0-2）
+     */
     useTransformation(slotIndex) {
         if (!this.localPlayerEnemy || this.playerRole !== 'enemy') {
             return;
+        }
+
+        // 如果已经变身，先结束当前变身
+        if (this.transformationState.isTransformed) {
+            this.endTransformation();
         }
 
         const type = this.transformationInventory.useTransformation(slotIndex);
@@ -1430,27 +1563,53 @@ export class Game {
 
         console.log(`[变身] 使用${this.transformationInventory.getTypeName(type)}道具`);
 
-        // TODO: 实现实际的变身视觉效果
-        // 暂时使用透明度变化作为占位
+        // 隐藏玩家原始模型
         if (this.localPlayerEnemy.mesh) {
-            this.localPlayerEnemy.mesh.traverse((child) => {
-                if (child.isMesh && child.material) {
-                    child.material.transparent = true;
-                    // 变身时暂时变为半透明（后续替换为真正的模型）
-                    child.material.opacity = 0.5;
-
-                    // 3秒后恢复
-                    setTimeout(() => {
-                        if (child.material) {
-                            child.material.opacity = 1.0;
-                        }
-                    }, 3000);
-                }
-            });
+            this.localPlayerEnemy.mesh.visible = false;
         }
+
+        // 创建变身模型
+        const transformModel = this.createTransformationModel(type);
+        transformModel.position.copy(this.localPlayerEnemy.position);
+        this.scene.add(transformModel);
+
+        // 保存变身状态
+        this.transformationState.isTransformed = true;
+        this.transformationState.currentType = type;
+        this.transformationState.transformModel = transformModel;
+        this.transformationState.transformTimer = this.transformationState.transformDuration;
 
         // 播放UI点击音效
         this.audioManager.playUIClick();
+
+        console.log(`[变身] 变为${this.transformationInventory.getTypeName(type)}，持续${this.transformationState.transformDuration}秒`);
+    }
+
+    /**
+     * 结束变身状态
+     */
+    endTransformation() {
+        if (!this.transformationState.isTransformed) {
+            return;
+        }
+
+        console.log(`[变身] 解除变身`);
+
+        // 移除变身模型
+        if (this.transformationState.transformModel) {
+            this.scene.remove(this.transformationState.transformModel);
+            this.transformationState.transformModel = null;
+        }
+
+        // 显示玩家原始模型
+        if (this.localPlayerEnemy && this.localPlayerEnemy.mesh) {
+            this.localPlayerEnemy.mesh.visible = true;
+        }
+
+        // 重置变身状态
+        this.transformationState.isTransformed = false;
+        this.transformationState.currentType = null;
+        this.transformationState.transformTimer = 0;
     }
 
     /**
