@@ -1128,7 +1128,19 @@ export class Game {
             this.uiManager.updateTime(this.timeManager.getFormattedTime());
         }
 
-        // 如果游戏暂停，只更新时间，不更新其他游戏逻辑
+        // 更新烟雾效果（即使暂停也要更新，保持多人同步）
+        for (let i = this.smokeEffects.length - 1; i >= 0; i--) {
+            const smoke = this.smokeEffects[i];
+            smoke.update(deltaTime);
+
+            // 移除已经消散的烟雾
+            if (!smoke.isAlive()) {
+                smoke.destroy();
+                this.smokeEffects.splice(i, 1);
+            }
+        }
+
+        // 如果游戏暂停，只更新时间和烟雾，不更新其他游戏逻辑
         if (this.isPaused) return;
 
         // 处理冻结期倒计时
@@ -1248,18 +1260,6 @@ export class Game {
             if (!bullet.isActive || bullet.checkGroundHit()) {
                 bullet.destroy();
                 this.bullets.splice(i, 1);
-            }
-        }
-
-        // 更新烟雾效果
-        for (let i = this.smokeEffects.length - 1; i >= 0; i--) {
-            const smoke = this.smokeEffects[i];
-            smoke.update(deltaTime);
-
-            // 移除已经消散的烟雾
-            if (!smoke.isAlive()) {
-                smoke.destroy();
-                this.smokeEffects.splice(i, 1);
             }
         }
 
