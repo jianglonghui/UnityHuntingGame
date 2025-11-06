@@ -1,4 +1,4 @@
-// 烟雾效果类
+// 烟雾弹效果类 - 战术烟雾遮挡视线
 export class SmokeEffect {
     constructor(scene, position) {
         this.scene = scene;
@@ -12,34 +12,37 @@ export class SmokeEffect {
     }
 
     /**
-     * 创建烟雾粒子
+     * 创建战术烟雾粒子（密集、大范围）
      */
     createSmoke() {
-        // 创建10-15个烟雾粒子
-        const particleCount = 10 + Math.floor(Math.random() * 6);
+        // 创建50-80个烟雾粒子，形成密集烟雾墙
+        const particleCount = 50 + Math.floor(Math.random() * 31);
 
         for (let i = 0; i < particleCount; i++) {
-            // 创建球体几何体作为烟雾粒子
-            const size = 0.3 + Math.random() * 0.4;
+            // 创建更大的球体作为烟雾粒子
+            const size = 1.5 + Math.random() * 1.0;  // 1.5-2.5米直径
             const geometry = new THREE.SphereGeometry(size, 8, 8);
 
-            // 半透明灰色材质
+            // 浓密的白色/灰色烟雾
+            const grayValue = 0.7 + Math.random() * 0.3;  // 0.7-1.0 (浅灰到白色)
             const material = new THREE.MeshBasicMaterial({
-                color: new THREE.Color(0.5 + Math.random() * 0.2, 0.5 + Math.random() * 0.2, 0.5 + Math.random() * 0.2),
+                color: new THREE.Color(grayValue, grayValue, grayValue),
                 transparent: true,
-                opacity: 0.6 + Math.random() * 0.2,
-                depthWrite: false,  // 避免透明度问题
+                opacity: 0.85 + Math.random() * 0.15,  // 高不透明度，遮挡视线
+                depthWrite: false,
                 fog: false
             });
 
             const particle = new THREE.Mesh(geometry, material);
 
-            // 随机初始位置（在击中点周围小范围内）
+            // 随机初始位置（在击中点周围大范围分布）
             const angle = Math.random() * Math.PI * 2;
-            const radius = Math.random() * 0.5;
+            const radius = Math.random() * 2.5;  // 扩大到2.5米半径
+            const height = Math.random() * 2.0;  // 0-2米高度范围
+
             particle.position.set(
                 this.position.x + Math.cos(angle) * radius,
-                this.position.y + 0.2 + Math.random() * 0.3,
+                this.position.y + height,
                 this.position.z + Math.sin(angle) * radius
             );
 
@@ -48,11 +51,11 @@ export class SmokeEffect {
                 initialOpacity: material.opacity,
                 initialScale: 1.0,
                 velocity: new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.5,  // x方向随机速度
-                    0.5 + Math.random() * 0.8,    // y方向向上
-                    (Math.random() - 0.5) * 0.5   // z方向随机速度
+                    (Math.random() - 0.5) * 1.5,  // 横向快速扩散
+                    0.3 + Math.random() * 0.5,    // 缓慢上升
+                    (Math.random() - 0.5) * 1.5   // 横向快速扩散
                 ),
-                rotationSpeed: (Math.random() - 0.5) * 2.0  // 随机旋转速度
+                rotationSpeed: (Math.random() - 0.5) * 1.0
             };
 
             this.scene.add(particle);
@@ -75,29 +78,36 @@ export class SmokeEffect {
         for (const particle of this.smokeParticles) {
             if (!particle.userData) continue;
 
-            // 根据速度移动粒子
+            // 根据速度移动粒子（快速扩散）
             particle.position.add(
                 particle.userData.velocity.clone().multiplyScalar(deltaTime)
             );
 
-            // 速度逐渐衰减（模拟阻力）
-            particle.userData.velocity.multiplyScalar(0.95);
+            // 速度逐渐衰减（但保持扩散）
+            particle.userData.velocity.multiplyScalar(0.98);
 
             // 旋转粒子
             particle.rotation.y += particle.userData.rotationSpeed * deltaTime;
             particle.rotation.x += particle.userData.rotationSpeed * 0.5 * deltaTime;
 
-            // 逐渐变大（膨胀效果）
-            const scale = 1.0 + lifeProgress * 2.5;  // 最终变为3.5倍大小
+            // 快速膨胀形成大范围烟雾墙
+            const scale = 1.0 + lifeProgress * 4.0;  // 最终变为5倍大小
             particle.scale.set(scale, scale, scale);
 
-            // 逐渐变透明（消散效果）
-            // 使用缓动函数使消散更自然
-            const fadeOutCurve = 1.0 - Math.pow(lifeProgress, 2);
-            particle.material.opacity = particle.userData.initialOpacity * fadeOutCurve;
+            // 不透明度变化：前40%时间保持高不透明（战术遮挡），后60%逐渐消散
+            let opacity;
+            if (lifeProgress < 0.4) {
+                // 前2秒：保持浓密，微弱淡化
+                opacity = particle.userData.initialOpacity * (1.0 - lifeProgress * 0.3);
+            } else {
+                // 后3秒：快速消散
+                const fadeProgress = (lifeProgress - 0.4) / 0.6;
+                opacity = particle.userData.initialOpacity * 0.88 * (1.0 - Math.pow(fadeProgress, 1.5));
+            }
+            particle.material.opacity = opacity;
 
-            // 颜色逐渐变淡（变白）
-            const colorFade = 0.5 + lifeProgress * 0.5;  // 从0.5变到1.0
+            // 颜色保持浓密的灰白色，不变太白
+            const colorFade = 0.7 + lifeProgress * 0.3;  // 从0.7变到1.0
             particle.material.color.setRGB(colorFade, colorFade, colorFade);
         }
 
