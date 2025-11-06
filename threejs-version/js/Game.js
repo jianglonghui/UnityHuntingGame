@@ -8,6 +8,7 @@ import { TimeManager } from './core/TimeManager.js';
 import { InputManager } from './core/InputManager.js';
 import { PhysicsManager } from './core/PhysicsManager.js';
 import { UIManager } from './ui/UIManager.js';
+import { AudioManager } from './core/AudioManager.js';
 import { SeededRandom } from './utils/SeededRandom.js';
 
 export class Game {
@@ -46,6 +47,7 @@ export class Game {
         this.inputManager = new InputManager();
         this.physicsManager = new PhysicsManager();
         this.uiManager = new UIManager();
+        this.audioManager = new AudioManager();
 
         // 随机数生成器（用于场景生成）
         this.random = null;
@@ -93,6 +95,9 @@ export class Game {
         // 创建场景内容
         this.createEnvironment();
         this.createLighting();
+
+        // 预加载音效
+        this.audioManager.preloadSounds();
 
         // 窗口大小改变
         window.addEventListener('resize', () => this.onWindowResize());
@@ -478,6 +483,9 @@ export class Game {
         this.isPaused = false;
         this.timeManager.start();
 
+        // 播放游戏开始音效
+        this.audioManager.playGameStart();
+
         // 显示游戏UI
         this.uiManager.showGameUI();
 
@@ -625,6 +633,9 @@ export class Game {
                 this.localPlayerEnemy.onHit();
                 this.localPlayerEnemy.lives = remainingLives;
 
+                // 播放击中音效
+                this.audioManager.playHit();
+
                 // 更新生命值显示
                 this.uiManager.updateHealth(remainingLives);
 
@@ -635,6 +646,8 @@ export class Game {
                 if (remainingLives <= 0) {
                     console.log('Local player died!');
                     this.localPlayerEnemy.onDeath();
+                    // 播放死亡音效
+                    this.audioManager.playDeath();
                     // 游戏结束将由服务器的gameOver事件触发
                 }
             }
@@ -644,9 +657,14 @@ export class Game {
                 playerEnemy.onHit();
                 playerEnemy.lives = remainingLives;
 
+                // 播放击中音效
+                this.audioManager.playHit();
+
                 // 敌人死亡
                 if (remainingLives <= 0) {
                     playerEnemy.onDeath();
+                    // 播放死亡音效
+                    this.audioManager.playDeath();
                     setTimeout(() => {
                         this.playerEnemies.delete(enemyId);
                     }, 2000);
@@ -793,6 +811,9 @@ export class Game {
 
         const shootData = this.player.shoot();
         if (shootData) {
+            // 播放射击音效
+            this.audioManager.playShoot();
+
             // 使用射线检测立即击中
             const ray = this.player.getShootRay();
             const raycaster = new THREE.Raycaster(ray.origin, ray.direction);
@@ -837,6 +858,9 @@ export class Game {
 
                 if (hitEnemy) {
                     hitEnemy.onHit();
+                    // 播放击中音效
+                    this.audioManager.playHit();
+
                     const newScore = this.scoreManager.addScore(1);
                     this.uiManager.updateScore(newScore);
                 }
@@ -862,6 +886,9 @@ export class Game {
 
         this.isGameOver = true;
         console.log('Game Over! Reason:', reason);
+
+        // 播放游戏结束音效
+        this.audioManager.playGameOver();
 
         this.isPlaying = false;
         this.timeManager.pause();
