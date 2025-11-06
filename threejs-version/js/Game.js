@@ -566,7 +566,11 @@ export class Game {
         this.timeManager.start();
 
         // 播放游戏开始音效
-        this.audioManager.playGameStart();
+        try {
+            this.audioManager.playGameStart();
+        } catch (error) {
+            console.warn('Failed to play game start sound:', error);
+        }
 
         // 显示游戏UI
         this.uiManager.showGameUI();

@@ -55,6 +55,13 @@ export class AudioManager {
      * 加载单个音效
      */
     loadSound(name, path, config = {}) {
+        // 检查Howl是否可用
+        if (typeof Howl === 'undefined') {
+            console.warn('Howl is not loaded yet, skipping sound loading');
+            this.sounds[name] = { play: () => {}, stop: () => {}, volume: () => {} };
+            return;
+        }
+
         try {
             this.sounds[name] = new Howl({
                 src: [path],
